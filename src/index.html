@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monaco-Editor</title>
+
+    <script type="module" src="index.ts"></script>
+
+    <script src="https://edrys-labs.github.io/module/edrys.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://edrys-labs.github.io/module/vendor/water.min.css"
+    />
+
+    <style>
+      body {
+        padding: 0px;
+        margin: 0px;
+        max-width: unset;
+      }
+
+      #editor {
+        min-height: 100vh;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="editor"></div>
+
+    <script>
+      Edrys.onReady(() => {
+        const yText = Edrys.getState('monaco-code', 'Text')
+        const awareness = Edrys.getState('monaco-awareness', 'Awareness')
+        const editor = window['createEditor'](
+          document.getElementById('editor'),
+          yText,
+          awareness
+        )
+      })
+    </script>
+  </body>
+</html>

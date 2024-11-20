@@ -1,0 +1,22 @@
+{
+  "name": "edrys-module-monaco",
+  "version": "1.0.0",
+  "scripts": {
+    "watch": "npx parcel serve src/index.html --open",
+    "build": "npx parcel build src/index.html",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "buffer": "^6.0.3",
+    "parcel": "^2.13.0",
+    "process": "^0.11.10",
+    "y-protocols": "^1.0.6"
+  },
+  "dependencies": {
+    "monaco-editor": "^0.52.0",
+    "y-monaco": "^0.1.6"
+  }
+}
