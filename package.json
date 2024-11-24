@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "watch": "npx parcel serve src/index.html --open",
-    "build": "npx parcel build src/index.html",
+    "build": "npx parcel build src/index.html --dist-dir docs --no-optimize --public-url ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -21,14 +21,5 @@
   "dependencies": {
     "monaco-editor": "^0.52.0",
     "y-monaco": "^0.1.6"
-  },
-  "multipleStaticFileCopier": [
-    {
-      "origin": "./node_modules/monaco-editor/min",
-      "destination": "./dist/min"
-    }
-  ],
-  "parcelIgnore": [
-    "./min/.+"
-  ]
+  }
 }
