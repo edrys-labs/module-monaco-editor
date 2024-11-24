@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Monaco-Editor</title>
 
-    <script type="module" src="index.ts"></script>
-
     <script src="https://edrys-labs.github.io/module/edrys.js"></script>
 
     <link
@@ -25,18 +23,64 @@
         min-height: 100vh;
         width: 100%;
       }
+
+      #execute {
+        position: fixed;
+        bottom: 0;
+        left: 10px;
+        padding: 10px;
+        z-index: 1000;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
     <div id="editor"></div>
+    <button id="execute" onclick="execute()">Execute</button>
 
-    <script>
+    <script type="module">
+      import * as monaco from 'monaco-editor'
+      import { MonacoBinding } from 'y-monaco'
+
+      var editor
+
+      function execute() {
+        Edrys.sendMessage(
+          Edrys.module?.config?.runCommand || 'execute',
+          editor.getValue()
+        )
+      }
+
       Edrys.onReady(() => {
         const yText = Edrys.getState('monaco-code', 'Text')
         const awareness = Edrys.getState('monaco-awareness', 'Awareness')
-        const editor = window['createEditor'](
-          document.getElementById('editor'),
+
+        editor = monaco.editor.create(document.getElementById('editor'), {
+          value: Edrys?.module?.config?.value,
+          language: Edrys?.module?.config?.language || 'cpp',
+          theme:
+            Edrys?.module?.config?.theme ||
+            (window.matchMedia &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'vs-dark'
+              : 'vs-light'),
+          automaticLayout: true,
+          scrollbar: {
+            vertical: 'visible', // Always show vertical scrollbar
+            horizontal: 'auto',
+            useShadows: false,
+            verticalHasArrows: false,
+            horizontalHasArrows: false,
+            alwaysConsumeMouseWheel: false,
+          },
+        })
+
+        const monacoBinding = new MonacoBinding(
           yText,
+          editor.getModel(),
+          new Set([editor]),
           awareness
         )
       })
