@@ -3,10 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
     <title>Monaco-Editor</title>
+
+    <meta
+      name="description"
+      content="Collaborative code editor module that can be connected to different edrys classrooms.<br/>For more information visit: <a href='https://github.com/edrys-labs/module-monaco-editor' target='_blank'>https://github.com/edrys-labs/module-monaco-editor</a>"
+    />
 
     <script src="https://edrys-labs.github.io/module/edrys.js"></script>
 
+    <link
+      rel="stylesheet"
+      href="../node_modules/monaco-editor/min/vs/editor/editor.main.css"
+    />
     <link
       rel="stylesheet"
       href="https://edrys-labs.github.io/module/vendor/water.min.css"
@@ -24,7 +34,11 @@
         width: 100%;
       }
 
-      #execute {
+      #reset {
+        display: none;
+      }
+
+      #controls {
         position: fixed;
         bottom: 0;
         left: 10px;
@@ -38,7 +52,10 @@
   </head>
   <body>
     <div id="editor"></div>
-    <button id="execute" onclick="execute()">Execute</button>
+    <div id="controls">
+      <button id="execute" onclick="execute()">Execute</button>
+      <button id="reset" onclick="reset()">Reset</button>
+    </div>
 
     <script type="module">
       import * as monaco from 'monaco-editor'
@@ -46,19 +63,31 @@
 
       var editor
 
-      function execute() {
+      window.execute = function () {
         Edrys.sendMessage(
           Edrys.module?.config?.runCommand || 'execute',
           editor.getValue()
         )
       }
 
+      window.reset = function () {
+        Edrys.updateState(() => {
+          const yText = Edrys.getState('monaco-code', 'Text')
+          yText.delete(0, editor.getValue().length)
+          yText.insert(0, Edrys?.module?.config?.value || '')
+        })
+      }
+
       Edrys.onReady(() => {
+        if (Edrys.module?.config?.value) {
+          document.getElementById('reset').style.display = 'inline'
+        }
+
         const yText = Edrys.getState('monaco-code', 'Text')
         const awareness = Edrys.getState('monaco-awareness', 'Awareness')
 
         editor = monaco.editor.create(document.getElementById('editor'), {
-          value: Edrys?.module?.config?.value,
+          value: '',
           language: Edrys?.module?.config?.language || 'cpp',
           theme:
             Edrys?.module?.config?.theme ||
@@ -83,6 +112,10 @@
           new Set([editor]),
           awareness
         )
+
+        if (yText.toString() === '') {
+          yText.insert(0, Edrys?.module?.config?.value || '')
+        }
       })
     </script>
   </body>
