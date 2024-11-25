@@ -64,10 +64,15 @@
       var editor
 
       window.execute = function () {
-        Edrys.sendMessage(
-          Edrys.module?.config?.runCommand || 'execute',
-          editor.getValue()
-        )
+        // Get the current selection or full content
+        const selection = editor.getSelection()
+        const code =
+          selection && !selection.isEmpty()
+            ? editor.getModel().getValueInRange(selection)
+            : editor.getValue()
+
+        // Send the selected code or full content
+        Edrys.sendMessage(Edrys.module?.config?.runCommand || 'execute', code)
       }
 
       window.reset = function () {
