@@ -2,8 +2,8 @@
   "name": "edrys-module-monaco",
   "version": "1.0.0",
   "scripts": {
-    "watch": "npx parcel serve src/index.html --open",
-    "build": "npx parcel build src/index.html --dist-dir docs --no-optimize --public-url ./",
+    "watch": "npx parcel serve src/index.html --open --port 3001",
+    "build": "npx parcel build src/index.html --dist-dir docs --public-url ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

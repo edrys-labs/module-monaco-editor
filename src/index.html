@@ -32,6 +32,10 @@
       #editor {
         min-height: 100vh;
         width: 100%;
+        width: 100%;
+        max-width: 100%; /* Prevent exceeding screen width */
+        max-height: 100vh; /* Prevent canvas overflow */
+        overflow: hidden; /* Hide any content beyond bounds */
       }
 
       #reset {
@@ -58,8 +62,33 @@
     </div>
 
     <script type="module">
+      import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
+      import CSSWorker from 'url:monaco-editor/esm/vs/language/css/css.worker.js'
+      import HTMLWorker from 'url:monaco-editor/esm/vs/language/html/html.worker.js'
+      import TSWorker from 'url:monaco-editor/esm/vs/language/typescript/ts.worker.js'
+      import EditorWorker from 'url:monaco-editor/esm/vs/editor/editor.worker.js'
       import * as monaco from 'monaco-editor'
       import { MonacoBinding } from 'y-monaco'
+
+      // @ts-ignore
+      window.MonacoEnvironment = {
+        getWorkerUrl: function (moduleId, label) {
+          if (label === 'json') {
+            return JSONWorker
+          }
+          if (label === 'css' || label === 'scss' || label === 'less') {
+            return CSSWorker
+          }
+          if (label === 'html' || label === 'handlebars' || label === 'razor') {
+            return HTMLWorker
+          }
+          if (label === 'typescript' || label === 'javascript') {
+            return TSWorker
+          }
+
+          return EditorWorker
+        },
+      }
 
       var editor
 
@@ -89,7 +118,7 @@
         }
 
         const yText = Edrys.getState('monaco-code', 'Text')
-        const awareness = Edrys.getState('monaco-awareness', 'Awareness')
+        // const awareness = Edrys.getState('monaco-awareness', 'Awareness')
 
         editor = monaco.editor.create(document.getElementById('editor'), {
           value: '',
@@ -114,8 +143,8 @@
         const monacoBinding = new MonacoBinding(
           yText,
           editor.getModel(),
-          new Set([editor]),
-          awareness
+          new Set([editor])
+          // awareness
         )
 
         if (yText.toString() === '') {
