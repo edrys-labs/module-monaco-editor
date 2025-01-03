@@ -105,20 +105,21 @@
       }
 
       window.reset = function () {
-        Edrys.updateState(() => {
-          const yText = Edrys.getState('monaco-code', 'Text')
-          yText.delete(0, editor.getValue().length)
-          yText.insert(0, Edrys?.module?.config?.value || '')
-        })
+        if (Edrys.module?.config?.syncronize ?? true) {
+          Edrys.updateState(() => {
+            const yText = Edrys.getState('monaco-code', 'Text')
+            yText.delete(0, editor.getValue().length)
+            yText.insert(0, Edrys?.module?.config?.value || '')
+          })
+        } else {
+          editor.setValue(Edrys?.module?.config?.value || '')
+        }
       }
 
       Edrys.onReady(() => {
         if (Edrys.module?.config?.value) {
           document.getElementById('reset').style.display = 'inline'
         }
-
-        const yText = Edrys.getState('monaco-code', 'Text')
-        // const awareness = Edrys.getState('monaco-awareness', 'Awareness')
 
         editor = monaco.editor.create(document.getElementById('editor'), {
           value: '',
@@ -140,15 +141,22 @@
           },
         })
 
-        const monacoBinding = new MonacoBinding(
-          yText,
-          editor.getModel(),
-          new Set([editor])
-          // awareness
-        )
+        if (Edrys?.module?.config?.syncronize ?? true) {
+          const yText = Edrys.getState('monaco-code', 'Text')
+          // const awareness = Edrys.getState('monaco-awareness', 'Awareness')
 
-        if (yText.toString() === '') {
-          yText.insert(0, Edrys?.module?.config?.value || '')
+          const monacoBinding = new MonacoBinding(
+            yText,
+            editor.getModel(),
+            new Set([editor])
+            // awareness
+          )
+
+          if (yText.toString() === '') {
+            yText.insert(0, Edrys?.module?.config?.value || '')
+          }
+        } else {
+          editor.setValue(Edrys?.module?.config?.value || '')
         }
       })
     </script>
