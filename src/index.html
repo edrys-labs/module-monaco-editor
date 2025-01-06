@@ -62,13 +62,14 @@
     </div>
 
     <script type="module">
-      import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
+      import * as monaco from 'monaco-editor'
+      import { MonacoBinding } from 'y-monaco'
+
+      /*  import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
       import CSSWorker from 'url:monaco-editor/esm/vs/language/css/css.worker.js'
       import HTMLWorker from 'url:monaco-editor/esm/vs/language/html/html.worker.js'
       import TSWorker from 'url:monaco-editor/esm/vs/language/typescript/ts.worker.js'
       import EditorWorker from 'url:monaco-editor/esm/vs/editor/editor.worker.js'
-      import * as monaco from 'monaco-editor'
-      import { MonacoBinding } from 'y-monaco'
 
       // @ts-ignore
       window.MonacoEnvironment = {
@@ -88,7 +89,7 @@
 
           return EditorWorker
         },
-      }
+      }  */
 
       var editor
 
