@@ -1,7 +1,0 @@
-function e(e,t,a,i){Object.defineProperty(e,t,{get:a,set:i,enumerable:!0,configurable:!0})}var t=globalThis.parcelRequire94c2;(0,t.register)("jpgnD",function(a,i){e(a.exports,"conf",()=>s),e(a.exports,"language",()=>g);/*!-----------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Version: 0.52.0(f6dc0eb8fce67e57f6036f4769d92c1666cdf546)
- * Released under the MIT license
- * https://github.com/microsoft/monaco-editor/blob/main/LICENSE.txt
- *-----------------------------------------------------------------------------*/var n=t("XtC4N"),s=n.conf,g={defaultToken:"invalid",tokenPostfix:".js",keywords:["break","case","catch","class","continue","const","constructor","debugger","default","delete","do","else","export","extends","false","finally","for","from","function","get","if","import","in","instanceof","let","new","null","return","set","static","super","switch","symbol","this","throw","true","try","typeof","undefined","var","void","while","with","yield","async","await","of"],typeKeywords:[],operators:n.language.operators,symbols:n.language.symbols,escapes:n.language.escapes,digits:n.language.digits,octaldigits:n.language.octaldigits,binarydigits:n.language.binarydigits,hexdigits:n.language.hexdigits,regexpctl:n.language.regexpctl,regexpesc:n.language.regexpesc,tokenizer:n.language.tokenizer}});
-//# sourceMappingURL=javascript.2fb13881.js.map
