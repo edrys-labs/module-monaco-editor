@@ -66488,22 +66488,22 @@ window.execute = function() {
     const selection = $9a48c75bc135a9d5$var$editor.getSelection();
     const code = selection && !selection.isEmpty() ? $9a48c75bc135a9d5$var$editor.getModel().getValueInRange(selection) : $9a48c75bc135a9d5$var$editor.getValue();
     // Send the selected code or full content
-    Edrys.sendMessage(Edrys.module?.config?.runCommand || 'execute', code);
+    Edrys.sendMessage(Edrys.module.config.runCommand || 'execute', code);
 };
 window.reset = function() {
-    if (Edrys.module?.config?.syncronize ?? true) Edrys.updateState(()=>{
+    if (Edrys.module.config.synchronize ?? true) Edrys.updateState(()=>{
         const yText = Edrys.getState('monaco-code', 'Text');
         yText.delete(0, $9a48c75bc135a9d5$var$editor.getValue().length);
-        yText.insert(0, Edrys?.module?.config?.value || '');
+        yText.insert(0, Edrys.module.config.value || '');
     });
-    else $9a48c75bc135a9d5$var$editor.setValue(Edrys?.module?.config?.value || '');
+    else $9a48c75bc135a9d5$var$editor.setValue(Edrys.module.config.value || '');
 };
 Edrys.onReady(()=>{
     if (Edrys.module?.config?.value) document.getElementById('reset').style.display = 'inline';
     $9a48c75bc135a9d5$var$editor = $6QSpz.editor.create(document.getElementById('editor'), {
         value: '',
-        language: Edrys?.module?.config?.language || 'cpp',
-        theme: Edrys?.module?.config?.theme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'vs-light'),
+        language: Edrys.module.config.language || 'cpp',
+        theme: Edrys.module.config.theme || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vs-dark' : 'vs-light'),
         automaticLayout: true,
         scrollbar: {
             vertical: 'visible',
@@ -66514,14 +66514,14 @@ Edrys.onReady(()=>{
             alwaysConsumeMouseWheel: false
         }
     });
-    if (Edrys?.module?.config?.syncronize ?? true) {
+    if (Edrys.module.config.synchronize ?? true) {
         const yText = Edrys.getState('monaco-code', 'Text');
         // const awareness = Edrys.getState('monaco-awareness', 'Awareness')
         const monacoBinding = new (0, $b4f944c428fc6429$export$f76a9ce8743d808f)(yText, $9a48c75bc135a9d5$var$editor.getModel(), new Set([
             $9a48c75bc135a9d5$var$editor
         ]));
-        if (yText.toString() === '') yText.insert(0, Edrys?.module?.config?.value || '');
-    } else $9a48c75bc135a9d5$var$editor.setValue(Edrys?.module?.config?.value || '');
+        if (yText.toString() === '') yText.insert(0, Edrys.module.config.value || '');
+    } else $9a48c75bc135a9d5$var$editor.setValue(Edrys.module.config.value || '');
 });
 
 
