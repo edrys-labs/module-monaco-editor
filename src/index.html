@@ -13,59 +13,11 @@
 
     <script src="https://edrys-labs.github.io/module/edrys.js"></script>
 
-    <link
-      rel="stylesheet"
-      href="../node_modules/monaco-editor/min/vs/editor/editor.main.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://edrys-labs.github.io/module/vendor/water.min.css"
-    />
-
-    <style>
-      body {
-        padding: 0px;
-        margin: 0px;
-        max-width: unset;
-      }
-
-      #editor {
-        min-height: 100vh;
-        width: 100%;
-        width: 100%;
-        max-width: 100%; /* Prevent exceeding screen width */
-        max-height: 100vh; /* Prevent canvas overflow */
-        overflow: hidden; /* Hide any content beyond bounds */
-      }
-
-      #reset {
-        display: none;
-      }
-
-      #controls {
-        position: fixed;
-        bottom: 0;
-        left: 10px;
-        padding: 10px;
-        z-index: 1000;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="editor"></div>
-    <div id="controls">
-      <button id="execute" onclick="execute()">Execute</button>
-      <button id="reset" onclick="reset()">Reset</button>
-    </div>
-
     <script type="module">
       import * as monaco from 'monaco-editor'
       import { MonacoBinding } from 'y-monaco'
 
-      /*  import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
+      import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
       import CSSWorker from 'url:monaco-editor/esm/vs/language/css/css.worker.js'
       import HTMLWorker from 'url:monaco-editor/esm/vs/language/html/html.worker.js'
       import TSWorker from 'url:monaco-editor/esm/vs/language/typescript/ts.worker.js'
@@ -89,7 +41,7 @@
 
           return EditorWorker
         },
-      }  */
+      }
 
       var editor
 
@@ -161,5 +113,53 @@
         }
       })
     </script>
+
+    <link
+      rel="stylesheet"
+      href="../node_modules/monaco-editor/min/vs/editor/editor.main.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://edrys-labs.github.io/module/vendor/water.min.css"
+    />
+
+    <style>
+      body {
+        padding: 0px;
+        margin: 0px;
+        max-width: unset;
+      }
+
+      #editor {
+        min-height: 100vh;
+        width: 100%;
+        width: 100%;
+        max-width: 100%; /* Prevent exceeding screen width */
+        max-height: 100vh; /* Prevent canvas overflow */
+        overflow: hidden; /* Hide any content beyond bounds */
+      }
+
+      #reset {
+        display: none;
+      }
+
+      #controls {
+        position: fixed;
+        bottom: 0;
+        left: 10px;
+        padding: 10px;
+        z-index: 1000;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="editor"></div>
+    <div id="controls">
+      <button id="execute" onclick="execute()">Execute</button>
+      <button id="reset" onclick="reset()">Reset</button>
+    </div>
   </body>
 </html>
