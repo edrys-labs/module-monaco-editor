@@ -11,6 +11,33 @@
       content="Collaborative code editor module that can be connected to different edrys classrooms.<br/>For more information visit: <a href='https://github.com/edrys-labs/module-monaco-editor' target='_blank'>https://github.com/edrys-labs/module-monaco-editor</a>"
     />
 
+    <meta 
+      name="module-config" 
+      content="{
+        'config': {
+          'runCommand': {
+            'type': string,
+            'hint': 'execute'
+          },
+          'language': {
+            'type': string,
+            'hint': 'cpp, javascript, python...'
+          },
+          'theme': {
+            'type': radio-button,
+            'options': ['vs-light', 'vs-dark']
+          },
+          'editorText': {
+            'type': text-area,
+          },
+          'synchronize': {
+            'type': boolean,
+            'hint': 'if true, the editor will be synchronized across all instances of the editor'
+          },
+        },
+      }" 
+    />
+
     <script src="https://edrys-labs.github.io/module/edrys.js"></script>
 
     <script type="module">
