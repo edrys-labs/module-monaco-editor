@@ -1,5 +1,9 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Monaco Editor</title><meta name="description" content="Collaborative code editor module for Edrys classrooms, built on Monaco Editor with real-time CRDT sync.<br/>For more information visit: <a href='https://github.com/edrys-labs/module-monaco-editor' target='_blank'>https://github.com/edrys-labs/module-monaco-editor</a>"><meta name="module-config" content="{
         'config': {
+          'editorId': {
+            'type': 'string',
+            'hint': 'Unique ID to namespace shared state — set different values when using multiple editors in the same room'
+          },
           'value': {
             'type': 'text-area',
             'hint': 'Initial code shown in the editor'
@@ -27,6 +31,6 @@
           'showLanguageSelector': {
             'type': 'boolean',
             'hint': 'Show language selector in the toolbar (teachers only, default: true)'
-          }
+          },
         }
-      }"><link rel="stylesheet" href="index.9fdb7ca0.css"><script src="https://edrys-labs.github.io/module/edrys.js"></script><script src="index.f8bdfabb.js" defer></script><link rel="stylesheet" href="index.a35e33d9.css"><link rel="stylesheet" href="https://edrys-labs.github.io/module/vendor/water.min.css"><link rel="stylesheet" href="index.eb0a0ee2.css"></head><body> <div id="editor"></div> <div id="controls"> <button id="btn-execute" onclick="execute()">Execute</button> <button id="btn-reset" onclick="reset()">Reset</button> <select id="lang-select" onchange="setLanguage(this.value)"> <option value="cpp">C++</option> <option value="c">C</option> <option value="python">Python</option> <option value="javascript">JavaScript</option> <option value="typescript">TypeScript</option> <option value="java">Java</option> <option value="csharp">C#</option> <option value="go">Go</option> <option value="rust">Rust</option> <option value="bash">Bash</option> <option value="sql">SQL</option> <option value="html">HTML</option> <option value="css">CSS</option> <option value="json">JSON</option> <option value="yaml">YAML</option> <option value="markdown">Markdown</option> <option value="plaintext">Plain Text</option> </select> <span id="lang-badge"></span> <span id="sync-dot" title="Synced"></span> </div> </body></html>
+      }"><link rel="stylesheet" href="index.9fdb7ca0.css"><script src="http://127.0.0.1:6999/edrys.js"></script><script src="index.9d966c0e.js" defer></script><link rel="stylesheet" href="index.a35e33d9.css"><link rel="stylesheet" href="https://edrys-labs.github.io/module/vendor/water.min.css"><link rel="stylesheet" href="index.eb0a0ee2.css"></head><body> <div id="editor"></div> <div id="controls"> <button id="btn-execute" onclick="execute()">Execute</button> <button id="btn-reset" onclick="reset()">Reset</button> <select id="lang-select" onchange="setLanguage(this.value)"> <option value="cpp">C++</option> <option value="c">C</option> <option value="python">Python</option> <option value="javascript">JavaScript</option> <option value="typescript">TypeScript</option> <option value="java">Java</option> <option value="csharp">C#</option> <option value="go">Go</option> <option value="rust">Rust</option> <option value="bash">Bash</option> <option value="sql">SQL</option> <option value="html">HTML</option> <option value="css">CSS</option> <option value="json">JSON</option> <option value="yaml">YAML</option> <option value="markdown">Markdown</option> <option value="plaintext">Plain Text</option> </select> <span id="lang-badge"></span> <span id="sync-dot" title="Synced"></span> </div> </body></html>

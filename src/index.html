@@ -15,6 +15,10 @@
       name="module-config"
       content="{
         'config': {
+          'editorId': {
+            'type': 'string',
+            'hint': 'Unique ID to namespace shared state — set different values when using multiple editors in the same room'
+          },
           'value': {
             'type': 'text-area',
             'hint': 'Initial code shown in the editor'
@@ -42,7 +46,7 @@
           'showLanguageSelector': {
             'type': 'boolean',
             'hint': 'Show language selector in the toolbar (teachers only, default: true)'
-          }
+          },
         }
       }"
     />

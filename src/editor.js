@@ -21,7 +21,6 @@ window.MonacoEnvironment = {
 
 // ─── Module state ─────────────────────────────────────────────────────────────
 var editor = null
-var monacoBinding = null
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,10 +56,11 @@ function applyLanguage(lang) {
 }
 
 window.setLanguage = function (lang) {
-  const sync = Edrys.module.config?.synchronize ?? true
+  const cfg = Edrys.module.config || {}
+  const sync = cfg.synchronize ?? true
   if (sync) {
     Edrys.updateState(() => {
-      Edrys.getState('monaco-language', 'Value', lang)
+      Edrys.getState(stateKey(cfg, 'language'), 'Value', lang)
     })
   }
   applyLanguage(lang)
@@ -83,7 +83,7 @@ function initLanguageSync(cfg, sync) {
 
   Edrys.onUpdate(() => {
     try {
-      const sharedLang = Edrys.getState('monaco-language', 'Value')
+      const sharedLang = Edrys.getState(stateKey(cfg, 'language'), 'Value')
       if (sharedLang && sharedLang !== editor.getModel()?.getLanguageId()) {
         applyLanguage(sharedLang)
       }
@@ -110,14 +110,19 @@ function applyRoleUI(role, cfg) {
 
 // ─── Sync initialization ──────────────────────────────────────────────────────
 
+function stateKey(cfg, suffix) {
+  const id = cfg.editorId || 'default'
+  return `monaco-${id}-${suffix}`
+}
+
 function initSync(cfg) {
-  const yText = Edrys.getState('monaco-code', 'Text')
+  const yText = Edrys.getState(stateKey(cfg, 'code'), 'Text')
 
   // Atomic initial insert: only the first peer to commit the transaction wins.
   Edrys.updateState(() => {
-    const alreadyInit = Edrys.getState('monaco-initialized', 'Value')
+    const alreadyInit = Edrys.getState(stateKey(cfg, 'initialized'), 'Value')
     if (!alreadyInit) {
-      Edrys.getState('monaco-initialized', 'Value', true)
+      Edrys.getState(stateKey(cfg, 'initialized'), 'Value', true)
       if (cfg.value) yText.insert(0, cfg.value)
     }
   })
@@ -137,7 +142,7 @@ function initSync(cfg) {
     awareness = null
   }
 
-  monacoBinding = new MonacoBinding(
+  new MonacoBinding(
     yText,
     editor.getModel(),
     new Set([editor]),
@@ -175,7 +180,7 @@ window.reset = function () {
   if (sync) {
     // yText.length is the authoritative CRDT length — not the Monaco model snapshot.
     Edrys.updateState(() => {
-      const yText = Edrys.getState('monaco-code', 'Text')
+      const yText = Edrys.getState(stateKey(cfg, 'code'), 'Text')
       yText.delete(0, yText.length)
       yText.insert(0, resetValue)
     })
