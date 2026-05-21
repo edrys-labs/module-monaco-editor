@@ -1,0 +1,114 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  padding: 0;
+  margin: 0;
+  max-width: unset;
+  overflow: hidden;
+  /* theme tokens — toggled by applyTheme() via body.light class */
+  --bar-bg:          #1e1e1e;
+  --bar-border:      #333;
+  --bar-text:        #ccc;
+  --bar-muted:       #888;
+  --btn-reset-bg:    #3a3a3a;
+  --btn-reset-hover: #4a4a4a;
+  --sel-bg:          #2d2d2d;
+  --sel-border:      #555;
+}
+
+body.light {
+  --bar-bg:          #f3f3f3;
+  --bar-border:      #ddd;
+  --bar-text:        #333;
+  --bar-muted:       #888;
+  --btn-reset-bg:    #e0e0e0;
+  --btn-reset-hover: #d0d0d0;
+  --sel-bg:          #fff;
+  --sel-border:      #bbb;
+}
+
+/* ── Editor fills viewport above control bar ── */
+#editor {
+  position: fixed;
+  inset: 0 0 44px 0;
+}
+
+/* ── Control bar ── */
+#controls {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  background: var(--bar-bg);
+  border-top: 1px solid var(--bar-border);
+  z-index: 1000;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#controls button {
+  padding: 4px 14px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 3px;
+  transition: background 0.1s;
+}
+
+#btn-execute {
+  background: #0e639c;
+  color: #fff;
+}
+#btn-execute:hover  { background: #1177bb; }
+#btn-execute:active { background: #0a5080; }
+
+#btn-reset {
+  background: var(--btn-reset-bg);
+  color: var(--bar-text);
+  display: none;
+}
+#btn-reset:hover { background: var(--btn-reset-hover); }
+
+/* Language selector — teachers only */
+#lang-select {
+  font-size: 12px;
+  font-family: inherit;
+  padding: 3px 6px;
+  background: var(--sel-bg);
+  color: var(--bar-text);
+  border: 1px solid var(--sel-border);
+  border-radius: 3px;
+  cursor: pointer;
+  display: none;
+}
+
+/* Language badge — students / stations */
+#lang-badge {
+  font-size: 11px;
+  color: var(--bar-muted);
+  font-family: monospace;
+  user-select: none;
+  letter-spacing: 0.03em;
+}
+
+/* Push the right-side group (badge or selector) to the far right */
+#lang-badge:not([style*="display: none"]) { margin-left: auto; }
+#lang-select:not([style*="display: none"]) ~ #lang-badge { margin-left: 0; }
+#lang-select:not([style*="display: none"]) { margin-left: auto; }
+
+/* Sync indicator dot */
+#sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4caf50;
+  flex-shrink: 0;
+  display: none; /* shown only in sync mode */
+  transition: background 0.2s;
+}
+#sync-dot.syncing { background: #ff9800; }

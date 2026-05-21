@@ -4,189 +4,98 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Monaco-Editor</title>
+    <title>Monaco Editor</title>
 
     <meta
       name="description"
-      content="Collaborative code editor module that can be connected to different edrys classrooms.<br/>For more information visit: <a href='https://github.com/edrys-labs/module-monaco-editor' target='_blank'>https://github.com/edrys-labs/module-monaco-editor</a>"
+      content="Collaborative code editor module for Edrys classrooms, built on Monaco Editor with real-time CRDT sync.<br/>For more information visit: <a href='https://github.com/edrys-labs/module-monaco-editor' target='_blank'>https://github.com/edrys-labs/module-monaco-editor</a>"
     />
 
-    <meta 
-      name="module-config" 
+    <meta
+      name="module-config"
       content="{
         'config': {
+          'value': {
+            'type': 'text-area',
+            'hint': 'Initial code shown in the editor'
+          },
           'runCommand': {
-            'type': string,
-            'hint': 'execute'
+            'type': 'string',
+            'hint': 'Message subject sent when Execute is clicked (default: execute)'
           },
           'language': {
-            'type': string,
-            'hint': 'cpp, javascript, python...'
+            'type': 'string',
+            'hint': 'Editor language: cpp, javascript, python, etc.'
           },
           'theme': {
-            'type': radio-button,
+            'type': 'radio-button',
             'options': ['vs-light', 'vs-dark']
           },
-          'value': {
-            'type': text-area,
-          },
           'synchronize': {
-            'type': boolean,
-            'hint': 'if true, the editor will be synchronized across all instances of the editor'
+            'type': 'boolean',
+            'hint': 'Sync editor content across all peers in the room (default: true)'
           },
-        },
-      }" 
+          'readOnly': {
+            'type': 'boolean',
+            'hint': 'Make the editor read-only (default: false)'
+          },
+          'showLanguageSelector': {
+            'type': 'boolean',
+            'hint': 'Show language selector in the toolbar (teachers only, default: true)'
+          }
+        }
+      }"
     />
 
+    <!-- Edrys client API -->
     <script src="https://edrys-labs.github.io/module/edrys.js"></script>
 
-    <script type="module">
-      import * as monaco from 'monaco-editor'
-      import { MonacoBinding } from 'y-monaco'
+    <!-- Module logic -->
+    <script type="module" src="./editor.js"></script>
 
-      import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
-      import CSSWorker from 'url:monaco-editor/esm/vs/language/css/css.worker.js'
-      import HTMLWorker from 'url:monaco-editor/esm/vs/language/html/html.worker.js'
-      import TSWorker from 'url:monaco-editor/esm/vs/language/typescript/ts.worker.js'
-      import EditorWorker from 'url:monaco-editor/esm/vs/editor/editor.worker.js'
-
-      // @ts-ignore
-      window.MonacoEnvironment = {
-        getWorkerUrl: function (moduleId, label) {
-          if (label === 'json') {
-            return JSONWorker
-          }
-          if (label === 'css' || label === 'scss' || label === 'less') {
-            return CSSWorker
-          }
-          if (label === 'html' || label === 'handlebars' || label === 'razor') {
-            return HTMLWorker
-          }
-          if (label === 'typescript' || label === 'javascript') {
-            return TSWorker
-          }
-
-          return EditorWorker
-        },
-      }
-
-      var editor
-
-      window.execute = function () {
-        // Get the current selection or full content
-        const selection = editor.getSelection()
-        const code =
-          selection && !selection.isEmpty()
-            ? editor.getModel().getValueInRange(selection)
-            : editor.getValue()
-
-        // Send the selected code or full content
-        Edrys.sendMessage(Edrys.module.config.runCommand || 'execute', code)
-      }
-
-      window.reset = function () {
-        if (Edrys.module.config.synchronize ?? true) {
-          Edrys.updateState(() => {
-            const yText = Edrys.getState('monaco-code', 'Text')
-            yText.delete(0, editor.getValue().length)
-            yText.insert(0, Edrys.module.config.value || '')
-          })
-        } else {
-          editor.setValue(Edrys.module.config.value || '')
-        }
-      }
-
-      Edrys.onReady(() => {
-        if (Edrys.module?.config?.value) {
-          document.getElementById('reset').style.display = 'inline'
-        }
-
-        editor = monaco.editor.create(document.getElementById('editor'), {
-          value: '',
-          language: Edrys.module.config.language || 'cpp',
-          theme:
-            Edrys.module.config.theme ||
-            (window.matchMedia &&
-            window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'vs-dark'
-              : 'vs-light'),
-          automaticLayout: true,
-          scrollbar: {
-            vertical: 'visible', // Always show vertical scrollbar
-            horizontal: 'auto',
-            useShadows: false,
-            verticalHasArrows: false,
-            horizontalHasArrows: false,
-            alwaysConsumeMouseWheel: false,
-          },
-        })
-
-        if (Edrys.module.config.synchronize ?? true) {
-          const yText = Edrys.getState('monaco-code', 'Text')
-          // const awareness = Edrys.getState('monaco-awareness', 'Awareness')
-
-          const monacoBinding = new MonacoBinding(
-            yText,
-            editor.getModel(),
-            new Set([editor])
-            // awareness
-          )
-
-          if (yText.toString() === '') {
-            yText.insert(0, Edrys.module.config.value || '')
-          }
-        } else {
-          editor.setValue(Edrys.module.config.value || '')
-        }
-      })
-    </script>
-
+    <!-- Monaco editor base styles -->
     <link
       rel="stylesheet"
       href="../node_modules/monaco-editor/min/vs/editor/editor.main.css"
     />
+    <!-- Edrys base styles (water.css) -->
     <link
       rel="stylesheet"
       href="https://edrys-labs.github.io/module/vendor/water.min.css"
     />
-
-    <style>
-      body {
-        padding: 0px;
-        margin: 0px;
-        max-width: unset;
-      }
-
-      #editor {
-        min-height: 100vh;
-        width: 100%;
-        width: 100%;
-        max-width: 100%; /* Prevent exceeding screen width */
-        max-height: 100vh; /* Prevent canvas overflow */
-        overflow: hidden; /* Hide any content beyond bounds */
-      }
-
-      #reset {
-        display: none;
-      }
-
-      #controls {
-        position: fixed;
-        bottom: 0;
-        left: 10px;
-        padding: 10px;
-        z-index: 1000;
-        color: white;
-        border: none;
-        cursor: pointer;
-      }
-    </style>
+    <!-- Module styles -->
+    <link rel="stylesheet" href="./editor.css" />
   </head>
+
   <body>
     <div id="editor"></div>
+
     <div id="controls">
-      <button id="execute" onclick="execute()">Execute</button>
-      <button id="reset" onclick="reset()">Reset</button>
+      <button id="btn-execute" onclick="execute()">Execute</button>
+      <button id="btn-reset" onclick="reset()">Reset</button>
+
+      <select id="lang-select" onchange="setLanguage(this.value)">
+        <option value="cpp">C++</option>
+        <option value="c">C</option>
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript</option>
+        <option value="typescript">TypeScript</option>
+        <option value="java">Java</option>
+        <option value="csharp">C#</option>
+        <option value="go">Go</option>
+        <option value="rust">Rust</option>
+        <option value="bash">Bash</option>
+        <option value="sql">SQL</option>
+        <option value="html">HTML</option>
+        <option value="css">CSS</option>
+        <option value="json">JSON</option>
+        <option value="yaml">YAML</option>
+        <option value="markdown">Markdown</option>
+        <option value="plaintext">Plain Text</option>
+      </select>
+
+      <span id="lang-badge"></span>
+      <span id="sync-dot" title="Synced"></span>
     </div>
   </body>
 </html>
