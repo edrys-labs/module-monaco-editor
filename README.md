@@ -1,30 +1,76 @@
 # Module Monaco Editor
 
-This is a collaborative code editor for Edrys-Lite.
+A collaborative code editor module for [Edrys-Lite](https://github.com/edrys-labs/edrys-Lite) classrooms, built on [Monaco Editor](https://microsoft.github.io/monaco-editor/) with real-time CRDT sync.
 
 ![screen](./screenshot.png)
 
 ## Usage
 
-Use this URL to add the module to your Edrys-Lite classroom:
+Add this URL to your Edrys-Lite classroom:
 
-```html
+```
 https://edrys-labs.github.io/module-monaco-editor/
 ```
 
-You may optionally specify any of the following module config, the `runCommand` is the only setting that is required:
+## Configuration
+
+All fields are optional unless noted.
 
 ```json
 {
-    "value": "Starting text in editor...",
-    "runCommand": "execute", 
-    "language": "cpp",
-    "theme": "vs-light" # or "vs-dark",
-    "synchronize": false
+  "value": "// initial code shown in the editor",
+  "runCommand": "execute",
+  "language": "cpp",
+  "theme": "vs-dark",
+  "synchronize": true,
+  "readOnly": false,
+  "showLanguageSelector": true,
+  "editorId": "editor1"
 }
 ```
 
-`runCommand` defines the subject under which the current editor-input will be published.
-Other modules such as the [edrys_module-pyxtermjs](https://github.com/Cross-Lab-Project/edrys_module-pyxtermjs) can be configured to listen to this specific subject and execute some action when they receive this event.
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `value` | string | `""` | Initial code pre-loaded into the editor. Also used as the reset target. |
+| `runCommand` | string | `"execute"` | Message subject sent to other modules when Execute is clicked. |
+| `language` | string | `"cpp"` | Editor language. Any Monaco-supported language is valid (e.g. `python`, `javascript`, `rust`). |
+| `theme` | string | system preference | Editor color theme: `vs-dark` or `vs-light`. Defaults to the OS dark/light preference. |
+| `synchronize` | boolean | `true` | Sync editor content in real time across all peers in the room via CRDT. |
+| `readOnly` | boolean | `false` | Make the editor read-only for all roles. |
+| `showLanguageSelector` | boolean | `true` | Show the language dropdown in the toolbar (teachers and stations only). |
+| `editorId` | string | `"default"` | Unique namespace for shared state. **Required when using multiple editors in the same room** — set a different value on each instance (e.g. `"editor1"`, `"editor2"`). |
 
-By default, the editor will be synchronized with the other students in the classroom. If you want to disable this feature, set `synchronize` to `false`.
+## Role behavior
+
+| Feature | Student | Teacher | Station |
+|---|---|---|---|
+| Edit code | yes | yes | yes |
+| Execute button | yes | yes | yes |
+| Reset button | no | yes (requires `value`) | yes (requires `value`) |
+| Language selector | no | yes | yes |
+
+Setting `readOnly: true` hides Execute and disables editing for all roles.
+
+## Connecting to other modules
+
+`runCommand` defines the message subject published when Execute is clicked. The message body is the current editor content (or the selected text if a selection exists).
+
+Modules like [pyxtermjs](https://github.com/Cross-Lab-Project/edrys_module-pyxtermjs) can be configured to listen on this subject and execute the received code.
+
+## Multiple editors in the same room
+
+When placing more than one Monaco Editor module in the same room, set a unique `editorId` on each instance. Without it, all instances share the same CRDT state and will mirror each other.
+
+```json
+{ "editorId": "editor1", "language": "cpp" }
+{ "editorId": "editor2", "language": "python" }
+```
+
+## Development
+
+```bash
+nvm use 24
+npm install
+npm run watch   # dev server on port 3001
+npm run build   # production build → docs/
+```
