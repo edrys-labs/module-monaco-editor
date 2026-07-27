@@ -112,3 +112,40 @@ body.light {
   transition: background 0.2s;
 }
 #sync-dot.syncing { background: #ff9800; }
+
+/* Collaborative cursors (y-monaco) */
+
+.yRemoteSelection {
+  background-color: rgba(250, 129, 0, 0.35);
+  border-radius: 2px;
+}
+
+.yRemoteSelectionHead {
+  position: relative;
+  display: inline-block;
+  width: 0;
+  height: 100%;
+  border-left: 2px solid orange;
+  box-sizing: border-box;
+  z-index: 10;
+}
+
+/* Always-visible name label; `bottom: 100%` floats it clear of the text. */
+.yRemoteSelectionHead::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  bottom: 100%;
+  background-color: orange;
+  color: #fff;
+  border-radius: 3px 3px 3px 0;
+  padding: 0 4px;
+  font-size: 10px;
+  font-family: sans-serif;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  z-index: 20;
+}

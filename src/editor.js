@@ -1,7 +1,8 @@
 import * as monaco from 'monaco-editor'
-import { MonacoBinding } from 'y-monaco'
-import * as Y from 'yjs'
-import { Awareness } from 'y-protocols/awareness'
+// Vendored y-monaco binding: upstream publishes cursor positions with assoc=0,
+// which makes an end-of-text caret follow other peers' typing. See the PATCH
+// comment in that file.
+import { MonacoBinding } from './y-monaco-patched.js'
 
 import JSONWorker from 'url:monaco-editor/esm/vs/language/json/json.worker.js'
 import CSSWorker from 'url:monaco-editor/esm/vs/language/css/css.worker.js'
@@ -43,6 +44,57 @@ function stringToHue(str) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash)
   }
   return Math.abs(hash) % 360
+}
+
+// Peer names are raw identities: a base64 ECDSA key with a `_xxxxx` session
+// suffix, or a plain name for stations. Mirrors edrys's getShortPeerID() so the
+// caret label matches the rooms list: first 4 key bytes as hex.
+function shortPeerName(rawName) {
+  const sepIdx = rawName.lastIndexOf('_')
+  const base = sepIdx > 0 ? rawName.slice(0, sepIdx) : rawName
+  // Only decode if it looks like a key; atob accepts text like "Station Foo"
+  // and would turn it into hex gibberish.
+  if (!/^[A-Za-z0-9+/]{40,}={0,2}$/.test(base)) return base.slice(0, 16)
+  try {
+    const bytes = Uint8Array.from(atob(base), (c) => c.charCodeAt(0))
+    return Array.from(bytes.slice(0, 4))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+  } catch {
+    // Not a key (e.g. "Station CxQGEp") — keep it readable.
+    return base.slice(0, 16)
+  }
+}
+
+// y-monaco tags decorations `yRemoteSelection-<clientID>` but never applies the
+// peer's colour. Inject one rule set per client from its awareness `user`.
+const cursorStyleEl = document.createElement('style')
+document.head.appendChild(cursorStyleEl)
+const styledClients = new Set()
+
+function ensureCursorStyle(clientID, user) {
+  // Latch only once `user` has arrived: awareness merges field-by-field, so
+  // `selection` can land first and would pin the peer as unnamed forever.
+  if (!user || styledClients.has(clientID)) return
+  styledClients.add(clientID)
+  const color = user.color || 'orange'
+  const colorLight = user.colorLight || color
+  const name = shortPeerName(user.name || 'anon')
+  // !important: Monaco's theme rules outspecify these single-class selectors
+  // and would leave every caret the default orange.
+  const rules = [
+    `.yRemoteSelection-${clientID} { background-color: ${colorLight} !important; }`,
+    `.yRemoteSelectionHead-${clientID} { border-left-color: ${color} !important; }`,
+    `.yRemoteSelectionHead-${clientID}::before { background-color: ${color} !important; content: "${name}" !important; }`,
+  ]
+  for (const rule of rules) {
+    try {
+      cursorStyleEl.sheet.insertRule(rule, cursorStyleEl.sheet.cssRules.length)
+    } catch (e) {
+      // A malformed name would otherwise abort the loop, unstyling the rest.
+      console.warn('cursor style rule rejected:', rule, e)
+    }
+  }
 }
 
 // ─── Language ─────────────────────────────────────────────────────────────────
@@ -127,11 +179,10 @@ function initSync(cfg) {
     }
   })
 
-  // Awareness for collaborative cursors — graceful fallback if unavailable.
+  // Shared awareness for cursors — graceful fallback if unavailable.
   let awareness = null
   try {
-    const localDoc = new Y.Doc()
-    awareness = new Awareness(localDoc)
+    awareness = Edrys.getState(stateKey(cfg, 'cursors'), 'Awareness')
     const hue = stringToHue(Edrys.username || 'anon')
     awareness.setLocalStateField('user', {
       name: Edrys.username || 'anon',
@@ -140,6 +191,18 @@ function initSync(cfg) {
     })
   } catch (_) {
     awareness = null
+  }
+
+  // Style peers as their state arrives; 'change' covers those already present
+  // at join as well as later arrivals.
+  if (awareness) {
+    const styleKnownClients = () => {
+      awareness.getStates().forEach((state, clientID) => {
+        ensureCursorStyle(clientID, state && state.user)
+      })
+    }
+    awareness.on('change', styleKnownClients)
+    styleKnownClients()
   }
 
   new MonacoBinding(
