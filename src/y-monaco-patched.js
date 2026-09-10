@@ -190,30 +190,43 @@ export class MonacoBinding {
     })
     if (awareness) {
       editors.forEach(editor => {
-        editor.onDidChangeCursorSelection(() => {
-          if (editor.getModel() === monacoModel) {
-            const sel = editor.getSelection()
-            if (sel === null) {
-              return
-            }
-            let anchor = monacoModel.getOffsetAt(sel.getStartPosition())
-            let head = monacoModel.getOffsetAt(sel.getEndPosition())
-            if (sel.getDirection() === monaco.SelectionDirection.RTL) {
-              const tmp = anchor
-              anchor = head
-              head = tmp
-            }
-            // PATCH vs upstream 0.1.6: assoc=-1 binds to the character on the
-            // LEFT. With the default assoc=0 a caret at the end of the text has
-            // nothing to its right, so it encodes as the degenerate "end of type"
-            // position (item=null) that resolves to the current length forever —
-            // an idle peer's caret then follows along as others append.
-            awareness.setLocalStateField('selection', {
-              anchor: Y.createRelativePositionFromTypeIndex(ytext, anchor, -1),
-              head: Y.createRelativePositionFromTypeIndex(ytext, head, -1)
-            })
+        // PATCH vs upstream 0.1.6: only a FOCUSED editor publishes a caret.
+        // Upstream publishes on the first selection change and never clears it,
+        // so a peer who once clicked into the editor kept a visible cursor in
+        // everyone else's view forever — while reading, in another module, or
+        // in another tab. Clearing on blur makes a remote caret mean "this peer
+        // is editing here right now".
+        const publishSelection = () => {
+          if (editor.getModel() !== monacoModel) return
+          if (!editor.hasTextFocus()) return
+          const sel = editor.getSelection()
+          if (sel === null) {
+            return
           }
+          let anchor = monacoModel.getOffsetAt(sel.getStartPosition())
+          let head = monacoModel.getOffsetAt(sel.getEndPosition())
+          if (sel.getDirection() === monaco.SelectionDirection.RTL) {
+            const tmp = anchor
+            anchor = head
+            head = tmp
+          }
+          // PATCH vs upstream 0.1.6: assoc=-1 binds to the character on the
+          // LEFT. With the default assoc=0 a caret at the end of the text has
+          // nothing to its right, so it encodes as the degenerate "end of type"
+          // position (item=null) that resolves to the current length forever —
+          // an idle peer's caret then follows along as others append.
+          awareness.setLocalStateField('selection', {
+            anchor: Y.createRelativePositionFromTypeIndex(ytext, anchor, -1),
+            head: Y.createRelativePositionFromTypeIndex(ytext, head, -1)
+          })
+        }
+
+        editor.onDidFocusEditorText(publishSelection)
+        editor.onDidBlurEditorText(() => {
+          if (editor.getModel() !== monacoModel) return
+          awareness.setLocalStateField('selection', null)
         })
+        editor.onDidChangeCursorSelection(publishSelection)
         awareness.on('change', this._rerenderDecorations)
       })
       this.awareness = awareness
