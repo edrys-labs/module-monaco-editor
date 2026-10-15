@@ -59,6 +59,10 @@ body.light {
   border-radius: 3px;
   transition: background 0.1s;
 }
+#controls button .oi {
+  font-size: 0.9em;
+  margin-right: 0.2em;
+}
 
 #btn-execute {
   background: #0e639c;
@@ -108,10 +112,10 @@ body.light {
   border-radius: 50%;
   background: #4caf50;
   flex-shrink: 0;
-  display: none; /* shown only in sync mode */
   transition: background 0.2s;
 }
 #sync-dot.syncing { background: #ff9800; }
+#sync-dot.local   { background: #6b6b6b; }
 
 /* Collaborative cursors (y-monaco) */
 

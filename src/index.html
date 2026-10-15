@@ -68,6 +68,11 @@
       rel="stylesheet"
       href="https://edrys-labs.github.io/module/vendor/water.min.css"
     />
+    <!-- Edrys icons (open-iconic) -->
+    <link
+      rel="stylesheet"
+      href="https://edrys-labs.github.io/module/vendor/open-iconic/css/open-iconic.min.css"
+    />
     <!-- Module styles -->
     <link rel="stylesheet" href="./editor.css" />
   </head>
@@ -76,10 +81,14 @@
     <div id="editor"></div>
 
     <div id="controls">
-      <button id="btn-execute" onclick="execute()">Execute</button>
-      <button id="btn-reset" onclick="reset()">Reset</button>
+      <button id="btn-execute" onclick="execute()">
+        <span class="oi" data-glyph="media-play" aria-hidden="true"></span> Execute
+      </button>
+      <button id="btn-reset" onclick="reset()">
+        <span class="oi" data-glyph="reload" aria-hidden="true"></span> Reset
+      </button>
 
-      <select id="lang-select" onchange="setLanguage(this.value)">
+      <select id="lang-select" aria-label="Language" onchange="setLanguage(this.value)">
         <option value="cpp">C++</option>
         <option value="c">C</option>
         <option value="python">Python</option>
@@ -100,7 +109,7 @@
       </select>
 
       <span id="lang-badge"></span>
-      <span id="sync-dot" title="Synced"></span>
+      <span id="sync-dot" role="img"></span>
     </div>
   </body>
 </html>

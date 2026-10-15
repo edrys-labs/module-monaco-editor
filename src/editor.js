@@ -25,11 +25,12 @@ var editor = null
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+const darkScheme = window.matchMedia?.('(prefers-color-scheme: dark)')
+
+// `auto` (or no theme) follows the device's light/dark setting.
 function resolveTheme(cfg) {
   if (cfg.theme === 'vs-dark' || cfg.theme === 'vs-light') return cfg.theme
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'vs-dark'
-    : 'vs-light'
+  return darkScheme?.matches ? 'vs-dark' : 'vs-light'
 }
 
 function applyTheme(theme) {
@@ -156,6 +157,16 @@ function applyRoleUI(role, cfg) {
   btnReset.style.display = ((isTeacher || isStation) && hasResetValue && !readOnly) ? 'inline-block' : 'none'
 }
 
+// Green: everyone in the room edits this code. Grey: each peer has its own copy.
+// The label carries the state for tooltips and screen readers, not just colour.
+function showSyncStatus(sync) {
+  const dot = document.getElementById('sync-dot')
+  const label = sync ? 'Shared: everyone in this room edits this code' : 'Local only: each person edits their own copy'
+  dot.classList.toggle('local', !sync)
+  dot.title = label
+  dot.setAttribute('aria-label', label)
+}
+
 // ─── Sync initialization ──────────────────────────────────────────────────────
 
 function stateKey(cfg, suffix) {
@@ -207,11 +218,11 @@ function initSync(cfg) {
     styleKnownClients()
   }
 
-  // Sync indicator dot: green at rest, briefly orange on any CRDT change.
+  // Briefly orange when edits arrive from other peers (not our own typing).
   const dot = document.getElementById('sync-dot')
-  dot.style.display = 'block'
   let flashTimer = null
-  const flash = () => {
+  const flash = (event) => {
+    if (event.transaction.local) return
     dot.classList.add('syncing')
     clearTimeout(flashTimer)
     flashTimer = setTimeout(() => dot.classList.remove('syncing'), 400)
@@ -305,6 +316,10 @@ Edrys.onReady(() => {
   })
 
   applyTheme(theme)
+  // auto: keep following the device when its light/dark setting changes
+  if (theme !== cfg.theme) {
+    darkScheme?.addEventListener('change', () => applyTheme(resolveTheme(cfg)))
+  }
 
   document.getElementById('lang-badge').textContent = lang
   const sel = document.getElementById('lang-select')
@@ -317,6 +332,7 @@ Edrys.onReady(() => {
     editor.setValue(cfg.value || '')
   }
 
+  showSyncStatus(syncEnabled(cfg))
   applyRoleUI(Edrys.role, cfg)
   initLanguageUI(cfg)
 })
