@@ -21,7 +21,7 @@ All fields are optional unless noted.
   "value": "// initial code shown in the editor",
   "runCommand": "execute",
   "language": "cpp",
-  "theme": "vs-dark",
+  "theme": "auto",
   "synchronize": true,
   "readOnly": false,
   "showLanguageSelector": true,
@@ -34,11 +34,14 @@ All fields are optional unless noted.
 | `value` | string | `""` | Initial code pre-loaded into the editor. Also used as the reset target. |
 | `runCommand` | string | `"execute"` | Message subject sent to other modules when Execute is clicked. |
 | `language` | string | `"cpp"` | Editor language. Any Monaco-supported language is valid (e.g. `python`, `javascript`, `rust`). |
-| `theme` | string | system preference | Editor color theme: `vs-dark` or `vs-light`. Defaults to the OS dark/light preference. |
-| `synchronize` | boolean | `true` | Sync editor content in real time across all peers in the room via CRDT. |
+| `theme` | string | `"auto"` | Editor color theme: `auto` (follows each device's dark/light preference), `vs-dark` or `vs-light`. |
+| `synchronize` | boolean | `false` | Share one document across all peers in the room, edited in real time (CRDT). Without it, each peer edits its own copy. |
 | `readOnly` | boolean | `false` | Make the editor read-only for all roles. |
-| `showLanguageSelector` | boolean | `true` | Show the language dropdown in the toolbar (teachers and stations only). |
+| `showLanguageSelector` | boolean | `false` | Show a language dropdown to teachers and stations. With `synchronize`, a change applies to everyone. |
 | `editorId` | string | `"default"` | Unique namespace for shared state. **Required when using multiple editors in the same room** — set a different value on each instance (e.g. `"editor1"`, `"editor2"`). |
+
+Every boolean is off by default, as in the other Edrys modules, because the Edrys settings form saves `false`
+for each checkbox you leave unticked. **Collaborative editing needs `synchronize: true`**.
 
 ## Role behavior
 
@@ -47,7 +50,7 @@ All fields are optional unless noted.
 | Edit code | yes | yes | yes |
 | Execute button | yes | yes | yes |
 | Reset button | no | yes (requires `value`) | yes (requires `value`) |
-| Language selector | no | yes | yes |
+| Language selector | no | with `showLanguageSelector` | with `showLanguageSelector` |
 
 Setting `readOnly: true` hides Execute and disables editing for all roles.
 
@@ -62,8 +65,8 @@ Modules like [pyxtermjs](https://github.com/Cross-Lab-Project/edrys_module-pyxte
 When placing more than one Monaco Editor module in the same room, set a unique `editorId` on each instance. Without it, all instances share the same CRDT state and will mirror each other.
 
 ```json
-{ "editorId": "editor1", "language": "cpp" }
-{ "editorId": "editor2", "language": "python" }
+{ "editorId": "editor1", "language": "cpp", "synchronize": true }
+{ "editorId": "editor2", "language": "python", "synchronize": true }
 ```
 
 ## Development

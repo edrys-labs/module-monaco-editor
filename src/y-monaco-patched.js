@@ -188,6 +188,11 @@ export class MonacoBinding {
     this._monacoDisposeHandler = monacoModel.onWillDispose(() => {
       this.destroy()
     })
+    // PATCH vs upstream 0.1.6: keep the editor listeners so destroy() can
+    // dispose them. Upstream leaks them, so a binding replaced by a new one
+    // (editor.js rebinds when the shared Y.Text is swapped) kept publishing
+    // carets for its dead Y.Text.
+    this._editorDisposables = []
     if (awareness) {
       editors.forEach(editor => {
         // PATCH vs upstream 0.1.6: only a FOCUSED editor publishes a caret.
@@ -221,12 +226,14 @@ export class MonacoBinding {
           })
         }
 
-        editor.onDidFocusEditorText(publishSelection)
-        editor.onDidBlurEditorText(() => {
-          if (editor.getModel() !== monacoModel) return
-          awareness.setLocalStateField('selection', null)
-        })
-        editor.onDidChangeCursorSelection(publishSelection)
+        this._editorDisposables.push(
+          editor.onDidFocusEditorText(publishSelection),
+          editor.onDidBlurEditorText(() => {
+            if (editor.getModel() !== monacoModel) return
+            awareness.setLocalStateField('selection', null)
+          }),
+          editor.onDidChangeCursorSelection(publishSelection)
+        )
         awareness.on('change', this._rerenderDecorations)
       })
       this.awareness = awareness
@@ -238,6 +245,9 @@ export class MonacoBinding {
     this._monacoDisposeHandler.dispose()
     this.ytext.unobserve(this._ytextObserver)
     this.doc.off('beforeAllTransactions', this._beforeTransaction)
+    this._editorDisposables.forEach(d => d.dispose())
+    // PATCH: drop this binding's remote carets; a replacing binding draws its own.
+    this._decorations.forEach((ids, editor) => editor.deltaDecorations(ids, []))
     if (this.awareness) {
       this.awareness.off('change', this._rerenderDecorations)
     }

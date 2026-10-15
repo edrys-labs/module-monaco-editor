@@ -109,8 +109,7 @@ function applyLanguage(lang) {
 
 window.setLanguage = function (lang) {
   const cfg = Edrys.module.config || {}
-  const sync = cfg.synchronize ?? true
-  if (sync) {
+  if (syncEnabled(cfg)) {
     Edrys.updateState(() => {
       Edrys.getState(stateKey(cfg, 'language'), 'Value', lang)
     })
@@ -118,8 +117,8 @@ window.setLanguage = function (lang) {
   applyLanguage(lang)
 }
 
-function initLanguageSync(cfg, sync) {
-  const showSelector = cfg.showLanguageSelector !== false
+function initLanguageUI(cfg) {
+  const showSelector = cfg.showLanguageSelector === true
   const sel = document.getElementById('lang-select')
   const badge = document.getElementById('lang-badge')
 
@@ -130,17 +129,6 @@ function initLanguageSync(cfg, sync) {
     sel.style.display = 'none'
     badge.style.display = 'inline-block'
   }
-
-  if (!sync) return
-
-  Edrys.onUpdate(() => {
-    try {
-      const sharedLang = Edrys.getState(stateKey(cfg, 'language'), 'Value')
-      if (sharedLang && sharedLang !== editor.getModel()?.getLanguageId()) {
-        applyLanguage(sharedLang)
-      }
-    } catch (_) {}
-  })
 }
 
 // ─── Role-aware UI ────────────────────────────────────────────────────────────
@@ -167,11 +155,21 @@ function stateKey(cfg, suffix) {
   return `monaco-${id}-${suffix}`
 }
 
-function initSync(cfg) {
-  const yText = Edrys.getState(stateKey(cfg, 'code'), 'Text')
+// Every boolean is opt-in (as `synchronize` in the other edrys modules):
+// edrys's settings form saves `false` for each boolean the teacher leaves
+// alone, so a default-true flag would be switched off by merely saving it.
+function syncEnabled(cfg) {
+  return cfg.synchronize === true
+}
 
-  // Atomic initial insert: only the first peer to commit the transaction wins.
+function initSync(cfg) {
+  const codeKey = stateKey(cfg, 'code')
+  const langKey = stateKey(cfg, 'language')
+  const room = Edrys.getState()
+
+  // Initial insert, skipped if a peer we have already synced with did it.
   Edrys.updateState(() => {
+    const yText = Edrys.getState(codeKey, 'Text')
     const alreadyInit = Edrys.getState(stateKey(cfg, 'initialized'), 'Value')
     if (!alreadyInit) {
       Edrys.getState(stateKey(cfg, 'initialized'), 'Value', true)
@@ -205,21 +203,46 @@ function initSync(cfg) {
     styleKnownClients()
   }
 
-  new MonacoBinding(
-    yText,
-    editor.getModel(),
-    new Set([editor]),
-    awareness
-  )
-
   // Sync indicator dot: green at rest, briefly orange on any CRDT change.
   const dot = document.getElementById('sync-dot')
   dot.style.display = 'block'
   let flashTimer = null
-  yText.observe(() => {
+  const flash = () => {
     dot.classList.add('syncing')
     clearTimeout(flashTimer)
     flashTimer = setTimeout(() => dot.classList.remove('syncing'), 400)
+  }
+
+  // The Y.Text under codeKey can be replaced: peers that open the editor
+  // before seeing each other's state each create one, and Yjs keeps only one.
+  // A binding left on a dropped Y.Text would neither send nor receive edits,
+  // so bind to whatever the room holds and rebind when that changes.
+  let yText = null
+  let binding = null
+  const bind = () => {
+    const current = Edrys.getState(codeKey, 'Text')
+    if (current === yText) return
+    if (binding) {
+      binding.destroy()
+      yText.unobserve(flash)
+    }
+    yText = current
+    binding = new MonacoBinding(yText, editor.getModel(), new Set([editor]), awareness)
+    yText.observe(flash)
+  }
+  bind()
+
+  // Read now as well: a late joiner gets no change event for a language the
+  // teacher picked before it arrived.
+  const applySharedLanguage = () => {
+    const lang = Edrys.getState(langKey, 'Value')
+    if (lang && lang !== editor.getModel()?.getLanguageId()) applyLanguage(lang)
+  }
+  applySharedLanguage()
+
+  room.observe((event) => {
+    if (event.keysChanged.has(codeKey)) bind()
+    if (event.keysChanged.has(langKey)) applySharedLanguage()
   })
 }
 
@@ -238,9 +261,8 @@ window.execute = function () {
 window.reset = function () {
   const cfg = Edrys.module.config || {}
   const resetValue = cfg.value || ''
-  const sync = cfg.synchronize ?? true
 
-  if (sync) {
+  if (syncEnabled(cfg)) {
     // yText.length is the authoritative CRDT length — not the Monaco model snapshot.
     Edrys.updateState(() => {
       const yText = Edrys.getState(stateKey(cfg, 'code'), 'Text')
@@ -258,7 +280,6 @@ Edrys.onReady(() => {
   const cfg = Edrys.module.config || {}
   const lang = cfg.language || 'cpp'
   const theme = resolveTheme(cfg)
-  const sync = cfg.synchronize ?? true
 
   editor = monaco.editor.create(document.getElementById('editor'), {
     value: '',
@@ -285,14 +306,13 @@ Edrys.onReady(() => {
   const sel = document.getElementById('lang-select')
   if (sel.querySelector(`option[value="${lang}"]`)) sel.value = lang
 
-  if (sync) {
+  if (syncEnabled(cfg)) {
     initSync(cfg)
   } else {
+    // Local only: every peer edits its own copy (setLanguage stays local too).
     editor.setValue(cfg.value || '')
-    // In no-sync mode, language changes are local-only.
-    window.setLanguage = function (l) { applyLanguage(l) }
   }
 
   applyRoleUI(Edrys.role, cfg)
-  initLanguageSync(cfg, sync)
+  initLanguageUI(cfg)
 })

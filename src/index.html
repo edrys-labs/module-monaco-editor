@@ -33,20 +33,21 @@
           },
           'theme': {
             'type': 'radio-button',
-            'options': ['vs-light', 'vs-dark']
+            'options': ['auto', 'vs-light', 'vs-dark'],
+            'hint': 'Editor colours; auto follows the light/dark setting of each device'
           },
           'synchronize': {
             'type': 'boolean',
-            'hint': 'Sync editor content across all peers in the room (default: true)'
+            'hint': 'Share one document across all peers in the room; otherwise each peer edits its own copy'
           },
           'readOnly': {
             'type': 'boolean',
-            'hint': 'Make the editor read-only (default: false)'
+            'hint': 'Make the editor read-only for everyone'
           },
           'showLanguageSelector': {
             'type': 'boolean',
-            'hint': 'Show language selector in the toolbar (teachers only, default: true)'
-          },
+            'hint': 'Let teachers and stations change the language for everyone'
+          }
         }
       }"
     />
