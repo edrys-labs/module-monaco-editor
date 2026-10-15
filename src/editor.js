@@ -39,6 +39,12 @@ const DEFAULTS = {
 let editor = null
 let cfg = DEFAULTS // set in onReady
 
+// The open files: one entry in single-file mode (name null), one per entry of
+// `cfg.file` otherwise. Each has its own Monaco model; the one editor shows
+// the active file's model.
+let files = []
+let active = null
+
 // `config` for everyone, then the role's own config (e.g. `studentConfig`).
 // Edrys leaves a config that isn't JSON as a string, and the settings form
 // saves blank fields as '': both fall back to the defaults.
@@ -53,6 +59,18 @@ function readConfig() {
     ...given(Edrys.module[`${Edrys.role}Config`]),
   }
 }
+
+// `file` ({ "main.cpp": "...", "util.h": "..." }, as in module-editor) turns
+// on multi-file mode. Anything else — not an object, or no files — is ignored.
+function configuredFiles() {
+  const file = cfg.file
+  if (!file || typeof file !== 'object' || Array.isArray(file)) return null
+  const names = Object.keys(file)
+  if (names.length === 0) return null
+  return names.map((name) => ({ name, value: file[name] == null ? '' : String(file[name]) }))
+}
+
+const isMultiFile = () => files.length > 0 && files[0].name !== null
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -139,12 +157,32 @@ function ensureCursorStyle(clientID, user) {
 
 // ─── Language ─────────────────────────────────────────────────────────────────
 
-function applyLanguage(lang) {
-  const model = editor.getModel()
-  if (model) monaco.editor.setModelLanguage(model, lang)
+const EXTENSION_LANGUAGES = {
+  c: 'c', h: 'cpp', cpp: 'cpp', cc: 'cpp', cxx: 'cpp', hpp: 'cpp', ino: 'cpp',
+  py: 'python', js: 'javascript', mjs: 'javascript', ts: 'typescript',
+  java: 'java', cs: 'csharp', go: 'go', rs: 'rust', sh: 'shell', sql: 'sql',
+  html: 'html', css: 'css', json: 'json', yaml: 'yaml', yml: 'yaml',
+  md: 'markdown', txt: 'plaintext',
+}
+
+// In multi-file mode each file's language follows its extension; files
+// without a known one use the configured language.
+function languageOf(name) {
+  const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : ''
+  if (ext === 'h' && cfg.language === 'c') return 'c'
+  return EXTENSION_LANGUAGES[ext] || cfg.language
+}
+
+function showLanguage(lang) {
   document.getElementById('lang-badge').textContent = lang
   const sel = document.getElementById('lang-select')
   if (sel.querySelector(`option[value="${lang}"]`)) sel.value = lang
+}
+
+// Single-file mode only: multi-file languages come from the file names.
+function applyLanguage(lang) {
+  monaco.editor.setModelLanguage(files[0].model, lang)
+  showLanguage(lang)
 }
 
 // With synchronize, the choice goes to everyone in the room.
@@ -160,7 +198,7 @@ function setLanguage(lang) {
 // Teachers and stations may get a selector; everyone else sees the language as text.
 function initLanguageUI() {
   const canSelect = Edrys.role === 'teacher' || Edrys.role === 'station'
-  const showSelector = canSelect && cfg.showLanguageSelector === true
+  const showSelector = canSelect && cfg.showLanguageSelector === true && !isMultiFile()
   document.getElementById('lang-select').hidden = !showSelector
   document.getElementById('lang-badge').hidden = showSelector
 }
@@ -172,7 +210,52 @@ function applyRoleUI() {
   const canReset = Edrys.role === 'teacher' || Edrys.role === 'station'
 
   document.getElementById('btn-execute').hidden = readOnly
-  document.getElementById('btn-reset').hidden = !(canReset && cfg.value && !readOnly)
+  const hasValue = files.some((f) => f.value)
+  document.getElementById('btn-reset').hidden = !(canReset && hasValue && !readOnly)
+}
+
+// ─── Files and tabs ───────────────────────────────────────────────────────────
+
+function openFile(file) {
+  if (file === active) return
+  if (active) active.viewState = editor.saveViewState()
+  active = file
+  editor.setModel(file.model)
+  if (file.viewState) editor.restoreViewState(file.viewState)
+  if (isMultiFile()) {
+    showLanguage(file.model.getLanguageId())
+    for (const f of files) {
+      f.tab.setAttribute('aria-selected', String(f === file))
+      f.tab.tabIndex = f === file ? 0 : -1
+    }
+  }
+}
+
+function initTabs() {
+  const bar = document.getElementById('tabs')
+  for (const file of files) {
+    const tab = document.createElement('button')
+    tab.type = 'button'
+    tab.setAttribute('role', 'tab')
+    tab.textContent = file.name
+    tab.title = file.name
+    tab.addEventListener('click', () => {
+      openFile(file)
+      editor.focus()
+    })
+    file.tab = tab
+    bar.appendChild(tab)
+  }
+  // Arrow keys move between tabs, as in a WAI-ARIA tablist.
+  bar.addEventListener('keydown', (e) => {
+    const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key]
+    if (!step) return
+    const next = files[(files.indexOf(active) + step + files.length) % files.length]
+    openFile(next)
+    next.tab.focus()
+  })
+  bar.hidden = false
+  document.body.classList.add('multi-file')
 }
 
 // Green: everyone in the room edits this code. Grey: each peer has its own copy.
@@ -192,18 +275,28 @@ function stateKey(suffix) {
   return `monaco-${cfg.editorId}-${suffix}`
 }
 
+// The shared text of a file, and the flag that says it got its initial value.
+// Single-file keys predate multi-file mode and stay as they were.
+function textKey(file) {
+  return file.name === null ? stateKey('code') : stateKey(`file:${file.name}`)
+}
+function initKey(file) {
+  return file.name === null ? stateKey('initialized') : stateKey(`file:${file.name}:initialized`)
+}
+
 function initSync() {
-  const codeKey = stateKey('code')
   const langKey = stateKey('language')
   const room = Edrys.getState()
 
-  // Initial insert, skipped if a peer we have already synced with did it.
+  // Initial insert, skipped if a peer we have already synced with did it. One
+  // flag per file, so a file added to the config later still gets its value.
   Edrys.updateState(() => {
-    const yText = Edrys.getState(codeKey, 'Text')
-    const alreadyInit = Edrys.getState(stateKey('initialized'), 'Value')
-    if (!alreadyInit) {
-      Edrys.getState(stateKey('initialized'), 'Value', true)
-      if (cfg.value) yText.insert(0, cfg.value)
+    for (const file of files) {
+      const yText = Edrys.getState(textKey(file), 'Text')
+      if (!Edrys.getState(initKey(file), 'Value')) {
+        Edrys.getState(initKey(file), 'Value', true)
+        if (file.value) yText.insert(0, file.value)
+      }
     }
   })
 
@@ -239,35 +332,38 @@ function initSync() {
     flashTimer = setTimeout(() => dot.classList.remove('syncing'), 400)
   }
 
-  // The Y.Text under codeKey can be replaced: peers that open the editor
-  // before seeing each other's state each create one, and Yjs keeps only one.
-  // A binding left on a dropped Y.Text would neither send nor receive edits,
-  // so bind to whatever the room holds and rebind when that changes.
-  let yText = null
-  let binding = null
-  const bind = () => {
-    const current = Edrys.getState(codeKey, 'Text')
-    if (current === yText) return
-    if (binding) {
-      binding.destroy()
-      yText.unobserve(flash)
+  // A file's Y.Text can be replaced: peers that open the editor before seeing
+  // each other's state each create one, and Yjs keeps only one. A binding left
+  // on a dropped Y.Text would neither send nor receive edits, so bind to
+  // whatever the room holds and rebind when that changes. Every file stays
+  // bound, not only the open one; the binding draws carets only while its
+  // model is shown.
+  const bind = (file) => {
+    const current = Edrys.getState(textKey(file), 'Text')
+    if (current === file.yText) return
+    if (file.binding) {
+      file.binding.destroy()
+      file.yText.unobserve(flash)
     }
-    yText = current
-    binding = new MonacoBinding(yText, editor.getModel(), new Set([editor]), awareness)
-    yText.observe(flash)
+    file.yText = current
+    file.binding = new MonacoBinding(current, file.model, new Set([editor]), awareness)
+    current.observe(flash)
   }
-  bind()
+  files.forEach(bind)
 
   // Read now as well: a late joiner gets no change event for a language the
-  // teacher picked before it arrived.
+  // teacher picked before it arrived. Multi-file languages are not shared.
   const applySharedLanguage = () => {
+    if (isMultiFile()) return
     const lang = Edrys.getState(langKey, 'Value')
-    if (lang && lang !== editor.getModel()?.getLanguageId()) applyLanguage(lang)
+    if (lang && lang !== files[0].model.getLanguageId()) applyLanguage(lang)
   }
   applySharedLanguage()
 
   room.observe((event) => {
-    if (event.keysChanged.has(codeKey)) bind()
+    for (const file of files) {
+      if (event.keysChanged.has(textKey(file))) bind(file)
+    }
     if (event.keysChanged.has(langKey)) applySharedLanguage()
   })
 }
@@ -275,7 +371,14 @@ function initSync() {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 // Sends the selection, or all code, to the modules listening on runCommand.
+// Multi-file mode sends every file as {"file": {name: code}}, the format of
+// module-editor that pyxtermjs, avr8js and micropython-simulator read.
 function execute() {
+  if (isMultiFile()) {
+    const file = Object.fromEntries(files.map((f) => [f.name, f.model.getValue()]))
+    Edrys.sendMessage(cfg.runCommand, JSON.stringify({ file }))
+    return
+  }
   const selection = editor.getSelection()
   const code =
     selection && !selection.isEmpty()
@@ -284,16 +387,19 @@ function execute() {
   Edrys.sendMessage(cfg.runCommand, code)
 }
 
+// Restores every file to its configured code.
 function reset() {
   if (cfg.synchronize === true) {
     // yText.length is the authoritative CRDT length — not the Monaco model snapshot.
     Edrys.updateState(() => {
-      const yText = Edrys.getState(stateKey('code'), 'Text')
-      yText.delete(0, yText.length)
-      yText.insert(0, cfg.value)
+      for (const file of files) {
+        const yText = Edrys.getState(textKey(file), 'Text')
+        yText.delete(0, yText.length)
+        yText.insert(0, file.value)
+      }
     })
   } else {
-    editor.setValue(cfg.value)
+    for (const file of files) file.model.setValue(file.value)
   }
 }
 
@@ -303,9 +409,15 @@ Edrys.onReady(() => {
   cfg = readConfig()
   const theme = resolveTheme()
 
+  // Models start empty: with synchronize the shared text fills them.
+  const sync = cfg.synchronize === true
+  files = (configuredFiles() || [{ name: null, value: cfg.value }]).map((f) => ({
+    ...f,
+    model: monaco.editor.createModel(sync ? '' : f.value, f.name === null ? cfg.language : languageOf(f.name)),
+  }))
+
   editor = monaco.editor.create(document.getElementById('editor'), {
-    value: '',
-    language: cfg.language,
+    model: null,
     theme,
     readOnly: cfg.readOnly === true,
     automaticLayout: true,
@@ -328,16 +440,14 @@ Edrys.onReady(() => {
     darkScheme?.addEventListener('change', () => applyTheme(resolveTheme()))
   }
 
-  applyLanguage(cfg.language)
+  if (isMultiFile()) initTabs()
+  else showLanguage(cfg.language)
+  openFile(files[0])
 
-  if (cfg.synchronize === true) {
-    initSync()
-  } else {
-    // Local only: every peer edits its own copy (setLanguage stays local too).
-    editor.setValue(cfg.value)
-  }
+  // Without synchronize every peer edits its own copy (setLanguage stays local too).
+  if (sync) initSync()
 
-  showSyncStatus(cfg.synchronize === true)
+  showSyncStatus(sync)
   applyRoleUI()
   initLanguageUI()
 

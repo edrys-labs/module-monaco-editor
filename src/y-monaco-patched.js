@@ -128,7 +128,11 @@ export class MonacoBinding {
           })
           this._decorations.set(editor, editor.deltaDecorations(currentDecorations, newDecorations))
         } else {
-          // ignore decorations
+          // PATCH vs upstream 0.1.6: the editor shows another model (multi-file
+          // tabs). Remove our carets from this model; upstream only forgets
+          // their ids, so they reappeared, stale, when the file was reopened.
+          const ids = this._decorations.get(editor)
+          if (ids && !monacoModel.isDisposed()) monacoModel.deltaDecorations(ids, [])
           this._decorations.delete(editor)
         }
       })
@@ -231,7 +235,10 @@ export class MonacoBinding {
             if (editor.getModel() !== monacoModel) return
             awareness.setLocalStateField('selection', null)
           }),
-          editor.onDidChangeCursorSelection(publishSelection)
+          editor.onDidChangeCursorSelection(publishSelection),
+          // PATCH vs upstream 0.1.6: draw (or drop) carets when the editor
+          // switches models, not only on the next awareness change.
+          editor.onDidChangeModel(this._rerenderDecorations)
         )
         awareness.on('change', this._rerenderDecorations)
       })
@@ -246,7 +253,10 @@ export class MonacoBinding {
     this.doc.off('beforeAllTransactions', this._beforeTransaction)
     this._editorDisposables.forEach(d => d.dispose())
     // PATCH: drop this binding's remote carets; a replacing binding draws its own.
-    this._decorations.forEach((ids, editor) => editor.deltaDecorations(ids, []))
+    // On the model, not the editor: the editor may show another file by now.
+    if (!this.monacoModel.isDisposed()) {
+      this._decorations.forEach((ids) => this.monacoModel.deltaDecorations(ids, []))
+    }
     if (this.awareness) {
       this.awareness.off('change', this._rerenderDecorations)
     }

@@ -29,10 +29,51 @@ body.light {
   --sel-border:      #bbb;
 }
 
-/* ── Editor fills viewport above control bar ── */
+/* ── Editor fills viewport above control bar (and below the tabs) ── */
 #editor {
   position: fixed;
   inset: 0 0 44px 0;
+}
+body.multi-file #editor { top: 32px; }
+
+/* ── File tabs (multi-file mode) ── */
+#tabs {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  background: var(--bar-bg);
+  border-bottom: 1px solid var(--bar-border);
+  z-index: 1000;
+}
+
+#tabs [role="tab"] {
+  flex-shrink: 0;
+  max-width: 200px;
+  margin: 0;
+  padding: 0 14px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--bar-muted);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--bar-border);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+#tabs [role="tab"]:hover { color: var(--bar-text); }
+#tabs [role="tab"][aria-selected="true"] {
+  color: var(--bar-text);
+  background: var(--sel-bg);
+  border-bottom-color: #0e639c;
 }
 
 /* ── Control bar ── */

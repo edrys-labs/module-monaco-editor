@@ -41,6 +41,7 @@ All fields are optional; empty ones fall back to their defaults.
 | `readOnly` | boolean | `false` | Make the editor read-only for all roles. |
 | `showLanguageSelector` | boolean | `false` | Show a language dropdown to teachers and stations. With `synchronize`, a change applies to everyone. |
 | `editorId` | string | `"default"` | Unique namespace for shared state. **Required when using multiple editors in the same room** — set a different value on each instance (e.g. `"editor1"`, `"editor2"`). |
+| `file` | object | — | Multi-file mode: file name → initial code. Replaces `value`; see [Multiple files](#multiple-files). |
 
 Every boolean is off by default, as in the other Edrys modules, because the Edrys settings form saves `false`
 for each checkbox you leave unticked. **Collaborative editing needs `synchronize: true`**.
@@ -49,13 +50,38 @@ The same fields can be set per role in `studentConfig`, `teacherConfig` or `stat
 `config` for that role. For example, `{ "readOnly": true }` as `studentConfig` lets only teachers and stations
 edit.
 
+## Multiple files
+
+![Multi-file mode: one tab per file, with a student's cursor in main.cpp](./screenshot-multi-file.png)
+
+Give `file` instead of `value` to get one tab per file, in the order listed:
+
+```json
+{
+  "synchronize": true,
+  "runCommand": "execute",
+  "file": {
+    "sketch.ino": "#include \"util.h\"\nvoid setup() {}\nvoid loop() {}",
+    "util.h": "// helpers"
+  }
+}
+```
+
+- Each file's language follows its extension (`.py` → python, `.cpp`/`.h`/`.ino` → cpp, `.js` → javascript, …).
+  Files without a known extension use `language`. The language selector is not shown in this mode.
+- With `synchronize`, every file is shared, and a peer's cursor is shown only in the file it is in.
+- Execute sends all files at once (see below); Reset restores every file.
+- The files are the ones in the config: peers cannot add, rename or delete files.
+
+The settings form has no field for `file`, so set it in the module's JSON config. Saving the form keeps it.
+
 ## Role behavior
 
 | Feature | Student | Teacher | Station |
 |---|---|---|---|
 | Edit code | yes | yes | yes |
 | Execute button | yes | yes | yes |
-| Reset button | no | yes (requires `value`) | yes (requires `value`) |
+| Reset button | no | yes (requires `value` or `file`) | yes (requires `value` or `file`) |
 | Language selector | no | with `showLanguageSelector` | with `showLanguageSelector` |
 
 Setting `readOnly: true` hides Execute and disables editing for all roles.
@@ -63,6 +89,9 @@ Setting `readOnly: true` hides Execute and disables editing for all roles.
 ## Connecting to other modules
 
 `runCommand` defines the message subject published when Execute is clicked. The message body is the current editor content (or the selected text if a selection exists).
+
+In multi-file mode the body is every file as JSON text, `{"file": {"sketch.ino": "...", "util.h": "..."}}`. That is the
+format pyxtermjs, avr8js and micropython-simulator read.
 
 Modules like [pyxtermjs](https://github.com/Cross-Lab-Project/edrys_module-pyxtermjs) can be configured to listen on this subject and execute the received code.
 
@@ -75,6 +104,8 @@ With `synchronize`, the editor keeps its state in the room, under keys named aft
 | `monaco-<editorId>-code` | `Y.Text` | the code |
 | `monaco-<editorId>-initialized` | value | `true` once `value` has been inserted |
 | `monaco-<editorId>-language` | value | the language picked with the selector |
+| `monaco-<editorId>-file:<name>` | `Y.Text` | multi-file mode: the code of file `<name>` |
+| `monaco-<editorId>-file:<name>:initialized` | value | `true` once that file's code has been inserted |
 
 Remote cursors use the awareness channel `monaco-<editorId>-cursors`.
 
