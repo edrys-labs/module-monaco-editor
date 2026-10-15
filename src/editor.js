@@ -21,14 +21,45 @@ window.MonacoEnvironment = {
 }
 
 // ─── Module state ─────────────────────────────────────────────────────────────
-var editor = null
+
+// Every boolean is opt-in (as `synchronize` in the other edrys modules):
+// edrys's settings form saves `false` for each boolean the teacher leaves
+// alone, so a default-true flag would be switched off by merely saving it.
+const DEFAULTS = {
+  value: '',
+  runCommand: 'execute',
+  language: 'cpp',
+  theme: 'auto',
+  synchronize: false,
+  readOnly: false,
+  showLanguageSelector: false,
+  editorId: 'default',
+}
+
+let editor = null
+let cfg = DEFAULTS // set in onReady
+
+// `config` for everyone, then the role's own config (e.g. `studentConfig`).
+// Edrys leaves a config that isn't JSON as a string, and the settings form
+// saves blank fields as '': both fall back to the defaults.
+function readConfig() {
+  const given = (c) =>
+    c && typeof c === 'object'
+      ? Object.fromEntries(Object.entries(c).filter(([, v]) => v !== '' && v != null))
+      : {}
+  return {
+    ...DEFAULTS,
+    ...given(Edrys.module.config),
+    ...given(Edrys.module[`${Edrys.role}Config`]),
+  }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const darkScheme = window.matchMedia?.('(prefers-color-scheme: dark)')
 
-// `auto` (or no theme) follows the device's light/dark setting.
-function resolveTheme(cfg) {
+// `auto` (or anything else) follows the device's light/dark setting.
+function resolveTheme() {
   if (cfg.theme === 'vs-dark' || cfg.theme === 'vs-light') return cfg.theme
   return darkScheme?.matches ? 'vs-dark' : 'vs-light'
 }
@@ -116,45 +147,32 @@ function applyLanguage(lang) {
   if (sel.querySelector(`option[value="${lang}"]`)) sel.value = lang
 }
 
-window.setLanguage = function (lang) {
-  const cfg = Edrys.module.config || {}
-  if (syncEnabled(cfg)) {
+// With synchronize, the choice goes to everyone in the room.
+function setLanguage(lang) {
+  if (cfg.synchronize === true) {
     Edrys.updateState(() => {
-      Edrys.getState(stateKey(cfg, 'language'), 'Value', lang)
+      Edrys.getState(stateKey('language'), 'Value', lang)
     })
   }
   applyLanguage(lang)
 }
 
-function initLanguageUI(cfg) {
-  const showSelector = cfg.showLanguageSelector === true
-  const sel = document.getElementById('lang-select')
-  const badge = document.getElementById('lang-badge')
-
-  if ((Edrys.role === 'teacher' || Edrys.role === 'station') && showSelector) {
-    sel.style.display = 'inline-block'
-    badge.style.display = 'none'
-  } else {
-    sel.style.display = 'none'
-    badge.style.display = 'inline-block'
-  }
+// Teachers and stations may get a selector; everyone else sees the language as text.
+function initLanguageUI() {
+  const canSelect = Edrys.role === 'teacher' || Edrys.role === 'station'
+  const showSelector = canSelect && cfg.showLanguageSelector === true
+  document.getElementById('lang-select').hidden = !showSelector
+  document.getElementById('lang-badge').hidden = showSelector
 }
 
 // ─── Role-aware UI ────────────────────────────────────────────────────────────
 
-function applyRoleUI(role, cfg) {
+function applyRoleUI() {
   const readOnly = cfg.readOnly === true
-  const hasResetValue = !!cfg.value
-  const isTeacher = role === 'teacher'
-  const isStation = role === 'station'
+  const canReset = Edrys.role === 'teacher' || Edrys.role === 'station'
 
-  editor.updateOptions({ readOnly })
-
-  const btnExecute = document.getElementById('btn-execute')
-  btnExecute.style.display = readOnly ? 'none' : 'inline-block'
-
-  const btnReset = document.getElementById('btn-reset')
-  btnReset.style.display = ((isTeacher || isStation) && hasResetValue && !readOnly) ? 'inline-block' : 'none'
+  document.getElementById('btn-execute').hidden = readOnly
+  document.getElementById('btn-reset').hidden = !(canReset && cfg.value && !readOnly)
 }
 
 // Green: everyone in the room edits this code. Grey: each peer has its own copy.
@@ -169,29 +187,22 @@ function showSyncStatus(sync) {
 
 // ─── Sync initialization ──────────────────────────────────────────────────────
 
-function stateKey(cfg, suffix) {
-  const id = cfg.editorId || 'default'
-  return `monaco-${id}-${suffix}`
+// Room state keys, one set per editorId: monaco-<editorId>-<suffix>
+function stateKey(suffix) {
+  return `monaco-${cfg.editorId}-${suffix}`
 }
 
-// Every boolean is opt-in (as `synchronize` in the other edrys modules):
-// edrys's settings form saves `false` for each boolean the teacher leaves
-// alone, so a default-true flag would be switched off by merely saving it.
-function syncEnabled(cfg) {
-  return cfg.synchronize === true
-}
-
-function initSync(cfg) {
-  const codeKey = stateKey(cfg, 'code')
-  const langKey = stateKey(cfg, 'language')
+function initSync() {
+  const codeKey = stateKey('code')
+  const langKey = stateKey('language')
   const room = Edrys.getState()
 
   // Initial insert, skipped if a peer we have already synced with did it.
   Edrys.updateState(() => {
     const yText = Edrys.getState(codeKey, 'Text')
-    const alreadyInit = Edrys.getState(stateKey(cfg, 'initialized'), 'Value')
+    const alreadyInit = Edrys.getState(stateKey('initialized'), 'Value')
     if (!alreadyInit) {
-      Edrys.getState(stateKey(cfg, 'initialized'), 'Value', true)
+      Edrys.getState(stateKey('initialized'), 'Value', true)
       if (cfg.value) yText.insert(0, cfg.value)
     }
   })
@@ -199,7 +210,7 @@ function initSync(cfg) {
   // Shared awareness for cursors — graceful fallback if unavailable.
   let awareness = null
   try {
-    awareness = Edrys.getState(stateKey(cfg, 'cursors'), 'Awareness')
+    awareness = Edrys.getState(stateKey('cursors'), 'Awareness')
     // Only the name: every peer derives the caret colour from it.
     awareness.setLocalStateField('user', { name: Edrys.username || 'anon' })
   } catch (_) {
@@ -261,44 +272,40 @@ function initSync(cfg) {
   })
 }
 
-// ─── Public actions ───────────────────────────────────────────────────────────
+// ─── Actions ──────────────────────────────────────────────────────────────────
 
-window.execute = function () {
-  if (!editor) return
+// Sends the selection, or all code, to the modules listening on runCommand.
+function execute() {
   const selection = editor.getSelection()
   const code =
     selection && !selection.isEmpty()
       ? editor.getModel().getValueInRange(selection)
       : editor.getValue()
-  Edrys.sendMessage(Edrys.module.config.runCommand || 'execute', code)
+  Edrys.sendMessage(cfg.runCommand, code)
 }
 
-window.reset = function () {
-  const cfg = Edrys.module.config || {}
-  const resetValue = cfg.value || ''
-
-  if (syncEnabled(cfg)) {
+function reset() {
+  if (cfg.synchronize === true) {
     // yText.length is the authoritative CRDT length — not the Monaco model snapshot.
     Edrys.updateState(() => {
-      const yText = Edrys.getState(stateKey(cfg, 'code'), 'Text')
+      const yText = Edrys.getState(stateKey('code'), 'Text')
       yText.delete(0, yText.length)
-      yText.insert(0, resetValue)
+      yText.insert(0, cfg.value)
     })
   } else {
-    editor.setValue(resetValue)
+    editor.setValue(cfg.value)
   }
 }
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
 Edrys.onReady(() => {
-  const cfg = Edrys.module.config || {}
-  const lang = cfg.language || 'cpp'
-  const theme = resolveTheme(cfg)
+  cfg = readConfig()
+  const theme = resolveTheme()
 
   editor = monaco.editor.create(document.getElementById('editor'), {
     value: '',
-    language: lang,
+    language: cfg.language,
     theme,
     readOnly: cfg.readOnly === true,
     automaticLayout: true,
@@ -318,21 +325,23 @@ Edrys.onReady(() => {
   applyTheme(theme)
   // auto: keep following the device when its light/dark setting changes
   if (theme !== cfg.theme) {
-    darkScheme?.addEventListener('change', () => applyTheme(resolveTheme(cfg)))
+    darkScheme?.addEventListener('change', () => applyTheme(resolveTheme()))
   }
 
-  document.getElementById('lang-badge').textContent = lang
-  const sel = document.getElementById('lang-select')
-  if (sel.querySelector(`option[value="${lang}"]`)) sel.value = lang
+  applyLanguage(cfg.language)
 
-  if (syncEnabled(cfg)) {
-    initSync(cfg)
+  if (cfg.synchronize === true) {
+    initSync()
   } else {
     // Local only: every peer edits its own copy (setLanguage stays local too).
-    editor.setValue(cfg.value || '')
+    editor.setValue(cfg.value)
   }
 
-  showSyncStatus(syncEnabled(cfg))
-  applyRoleUI(Edrys.role, cfg)
-  initLanguageUI(cfg)
+  showSyncStatus(cfg.synchronize === true)
+  applyRoleUI()
+  initLanguageUI()
+
+  document.getElementById('btn-execute').addEventListener('click', execute)
+  document.getElementById('btn-reset').addEventListener('click', reset)
+  document.getElementById('lang-select').addEventListener('change', (e) => setLanguage(e.target.value))
 })

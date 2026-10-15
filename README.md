@@ -12,9 +12,11 @@ Add this URL to your Edrys-Lite classroom:
 https://edrys-labs.github.io/module-monaco-editor/
 ```
 
+The module is shown in every room (`show-in: *`).
+
 ## Configuration
 
-All fields are optional unless noted.
+All fields are optional; empty ones fall back to their defaults.
 
 ```json
 {
@@ -31,7 +33,7 @@ All fields are optional unless noted.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `value` | string | `""` | Initial code pre-loaded into the editor. Also used as the reset target. |
+| `value` | string | `""` | Initial code pre-loaded into the editor. Also used as the reset target. With `synchronize`, it only seeds the room's shared code once: changing it later does not replace code already in the room. Press Reset, or use a new `editorId`. |
 | `runCommand` | string | `"execute"` | Message subject sent to other modules when Execute is clicked. |
 | `language` | string | `"cpp"` | Editor language. Any Monaco-supported language is valid (e.g. `python`, `javascript`, `rust`). |
 | `theme` | string | `"auto"` | Editor color theme: `auto` (follows each device's dark/light preference), `vs-dark` or `vs-light`. |
@@ -42,6 +44,10 @@ All fields are optional unless noted.
 
 Every boolean is off by default, as in the other Edrys modules, because the Edrys settings form saves `false`
 for each checkbox you leave unticked. **Collaborative editing needs `synchronize: true`**.
+
+The same fields can be set per role in `studentConfig`, `teacherConfig` or `stationConfig`, which override
+`config` for that role. For example, `{ "readOnly": true }` as `studentConfig` lets only teachers and stations
+edit.
 
 ## Role behavior
 
@@ -60,6 +66,18 @@ Setting `readOnly: true` hides Execute and disables editing for all roles.
 
 Modules like [pyxtermjs](https://github.com/Cross-Lab-Project/edrys_module-pyxtermjs) can be configured to listen on this subject and execute the received code.
 
+## Shared state
+
+With `synchronize`, the editor keeps its state in the room, under keys named after `editorId`:
+
+| Key | Type | Content |
+|---|---|---|
+| `monaco-<editorId>-code` | `Y.Text` | the code |
+| `monaco-<editorId>-initialized` | value | `true` once `value` has been inserted |
+| `monaco-<editorId>-language` | value | the language picked with the selector |
+
+Remote cursors use the awareness channel `monaco-<editorId>-cursors`.
+
 ## Multiple editors in the same room
 
 When placing more than one Monaco Editor module in the same room, set a unique `editorId` on each instance. Without it, all instances share the same CRDT state and will mirror each other.
@@ -77,3 +95,7 @@ npm install
 npm run watch   # dev server on port 3001
 npm run build   # production build → docs/
 ```
+
+## License
+
+[MIT](LICENSE) © edrys-labs

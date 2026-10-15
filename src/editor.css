@@ -1,5 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 body {
   padding: 0;
   margin: 0;
@@ -74,11 +76,10 @@ body.light {
 #btn-reset {
   background: var(--btn-reset-bg);
   color: var(--bar-text);
-  display: none;
 }
 #btn-reset:hover { background: var(--btn-reset-hover); }
 
-/* Language selector — teachers only */
+/* Language selector — teachers and stations, with showLanguageSelector */
 #lang-select {
   font-size: 12px;
   font-family: inherit;
@@ -88,10 +89,9 @@ body.light {
   border: 1px solid var(--sel-border);
   border-radius: 3px;
   cursor: pointer;
-  display: none;
 }
 
-/* Language badge — students / stations */
+/* Language badge — everyone without the selector */
 #lang-badge {
   font-size: 11px;
   color: var(--bar-muted);
@@ -100,10 +100,9 @@ body.light {
   letter-spacing: 0.03em;
 }
 
-/* Push the right-side group (badge or selector) to the far right */
-#lang-badge:not([style*="display: none"]) { margin-left: auto; }
-#lang-select:not([style*="display: none"]) ~ #lang-badge { margin-left: 0; }
-#lang-select:not([style*="display: none"]) { margin-left: auto; }
+/* Push the language (selector or badge, only one is shown) to the far right */
+#lang-select,
+#lang-badge { margin-left: auto; }
 
 /* Sync indicator dot */
 #sync-dot {

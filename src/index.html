@@ -11,6 +11,8 @@
       content="Collaborative code editor module for Edrys classrooms, built on Monaco Editor with real-time CRDT sync.<br/>For more information visit: <a href='https://github.com/edrys-labs/module-monaco-editor' target='_blank'>https://github.com/edrys-labs/module-monaco-editor</a>"
     />
 
+    <meta name="show-in" content="*" />
+
     <meta
       name="module-config"
       content="{
@@ -20,7 +22,7 @@
             'hint': 'Unique ID to namespace shared state — set different values when using multiple editors in the same room'
           },
           'value': {
-            'type': 'text-area',
+            'type': 'code-area',
             'hint': 'Initial code shown in the editor'
           },
           'runCommand': {
@@ -28,8 +30,9 @@
             'hint': 'Message subject sent when Execute is clicked (default: execute)'
           },
           'language': {
-            'type': 'string',
-            'hint': 'Editor language: cpp, javascript, python, etc.'
+            'type': 'combobox',
+            'options': ['cpp', 'c', 'python', 'javascript', 'typescript', 'java', 'csharp', 'go', 'rust', 'bash', 'sql', 'html', 'css', 'json', 'yaml', 'markdown', 'plaintext'],
+            'hint': 'Editor language (default: cpp); any Monaco language id works'
           },
           'theme': {
             'type': 'radio-button',
@@ -58,11 +61,6 @@
     <!-- Module logic -->
     <script type="module" src="./editor.js"></script>
 
-    <!-- Monaco editor base styles -->
-    <link
-      rel="stylesheet"
-      href="../node_modules/monaco-editor/min/vs/editor/editor.main.css"
-    />
     <!-- Edrys base styles (water.css) -->
     <link
       rel="stylesheet"
@@ -81,14 +79,14 @@
     <div id="editor"></div>
 
     <div id="controls">
-      <button id="btn-execute" onclick="execute()">
+      <button id="btn-execute">
         <span class="oi" data-glyph="media-play" aria-hidden="true"></span> Execute
       </button>
-      <button id="btn-reset" onclick="reset()">
+      <button id="btn-reset" hidden>
         <span class="oi" data-glyph="reload" aria-hidden="true"></span> Reset
       </button>
 
-      <select id="lang-select" aria-label="Language" onchange="setLanguage(this.value)">
+      <select id="lang-select" aria-label="Language" hidden>
         <option value="cpp">C++</option>
         <option value="c">C</option>
         <option value="python">Python</option>

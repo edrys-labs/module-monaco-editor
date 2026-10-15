@@ -2,7 +2,6 @@ import * as Y from 'yjs'
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api.js'
 import * as error from 'lib0/error'
 import { createMutex } from 'lib0/mutex'
-import { Awareness } from 'y-protocols/awareness' // eslint-disable-line
 
 class RelativeSelection {
   /**
@@ -63,7 +62,7 @@ export class MonacoBinding {
    * @param {Y.Text} ytext
    * @param {monaco.editor.ITextModel} monacoModel
    * @param {Set<monaco.editor.IStandaloneCodeEditor>} [editors]
-   * @param {Awareness?} [awareness]
+   * @param {object?} [awareness] a y-protocols Awareness (from Edrys.getState(…, 'Awareness'))
    */
   constructor (ytext, monacoModel, editors = new Set(), awareness = null) {
     this.doc = /** @type {Y.Doc} */ (ytext.doc)

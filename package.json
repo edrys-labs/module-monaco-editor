@@ -7,18 +7,16 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC",
-  "description": "",
+  "license": "MIT",
+  "description": "Collaborative Monaco code editor module for Edrys classrooms",
   "devDependencies": {
     "buffer": "^6.0.3",
     "parcel": "^2.13.0",
-    "process": "^0.11.10",
-    "y-protocols": "^1.0.7"
+    "process": "^0.11.10"
   },
   "dependencies": {
     "lib0": "^0.2.117",
     "monaco-editor": "^0.52.0",
-    "y-monaco": "0.1.6",
     "yjs": "^13.6.30"
   },
   "alias": {
