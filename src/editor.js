@@ -46,6 +46,11 @@ function stringToHue(str) {
   return Math.abs(hash) % 360
 }
 
+function cursorColors(name) {
+  const hue = stringToHue(name)
+  return { color: `hsl(${hue}, 70%, 55%)`, colorLight: `hsl(${hue}, 70%, 85%)` }
+}
+
 // Peer names are raw identities: a base64 ECDSA key with a `_xxxxx` session
 // suffix, or a plain name for stations. Mirrors edrys's getShortPeerID() so the
 // caret label matches the rooms list: first 4 key bytes as hex.
@@ -67,7 +72,7 @@ function shortPeerName(rawName) {
 }
 
 // y-monaco tags decorations `yRemoteSelection-<clientID>` but never applies the
-// peer's colour. Inject one rule set per client from its awareness `user`.
+// peer's colour. Inject one rule set per client from its awareness `user.name`.
 const cursorStyleEl = document.createElement('style')
 document.head.appendChild(cursorStyleEl)
 const styledClients = new Set()
@@ -77,9 +82,12 @@ function ensureCursorStyle(clientID, user) {
   // `selection` can land first and would pin the peer as unnamed forever.
   if (!user || styledClients.has(clientID)) return
   styledClients.add(clientID)
-  const color = user.color || 'orange'
-  const colorLight = user.colorLight || color
-  const name = shortPeerName(user.name || 'anon')
+  // Awareness state is whatever the peer chose to publish, and these strings
+  // land in CSS: derive the colour here and keep only plain name characters,
+  // so a peer can't inject declarations (e.g. a tracking background-image).
+  const rawName = String(user.name || 'anon')
+  const { color, colorLight } = cursorColors(rawName)
+  const name = shortPeerName(rawName).replace(/[^\w .-]/g, '') || 'anon'
   // !important: Monaco's theme rules outspecify these single-class selectors
   // and would leave every caret the default orange.
   const rules = [
@@ -181,12 +189,8 @@ function initSync(cfg) {
   let awareness = null
   try {
     awareness = Edrys.getState(stateKey(cfg, 'cursors'), 'Awareness')
-    const hue = stringToHue(Edrys.username || 'anon')
-    awareness.setLocalStateField('user', {
-      name: Edrys.username || 'anon',
-      color: `hsl(${hue}, 70%, 55%)`,
-      colorLight: `hsl(${hue}, 70%, 85%)`,
-    })
+    // Only the name: every peer derives the caret colour from it.
+    awareness.setLocalStateField('user', { name: Edrys.username || 'anon' })
   } catch (_) {
     awareness = null
   }
