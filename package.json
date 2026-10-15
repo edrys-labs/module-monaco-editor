@@ -1,6 +1,6 @@
 {
   "name": "edrys-module-monaco",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "scripts": {
     "watch": "npx parcel serve src/index.html --open --port 3001",
     "build": "npx parcel build src/index.html --no-scope-hoist --dist-dir docs --public-url ./",
