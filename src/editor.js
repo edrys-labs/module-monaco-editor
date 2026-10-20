@@ -424,6 +424,8 @@ Edrys.onReady(() => {
     fontSize: 14,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
+    // Room for the peer name label, which floats above the caret on line 1.
+    padding: { top: 16 },
     scrollbar: {
       vertical: 'visible',
       horizontal: 'auto',
